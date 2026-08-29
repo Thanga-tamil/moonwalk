@@ -1,27 +1,26 @@
 package main
 
 import (
-	"moonwalk/internal/route"
-	"moonwalk/internal/middleware"
-
-	"github.com/gin-gonic/gin"
+	"fmt"
+	"moonwalk/internal/app"
 	log "github.com/Thanga-tamil/logger_lib"
 )
 
 func main() {
 
+	fmt.Println("Initializing custom zap logger")
+
 	log.NewLogger("moonwalk.log")
 
-	serve := gin.New()
+	fmt.Println("Custom zap logger initialized successfully")
 
-	// Attach middlewares to GIN 
-	serve.Use(middleware.LoggerChain())
+	if err := app.App(); err != nil {
+		// try one recovery for the collective good,
+		// upon more than one failure startup, stop 
+		// the service and start debugging 
+		panic(err)
+	}
 
-	v1Group := serve.Group("/api/v1")
-
-	route.Router(v1Group)
-
-	serve.Run("0.0.0.0:8080")
-
+	app.Run("0.0.0.0:8080")
 }
 
