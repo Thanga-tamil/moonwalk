@@ -6,26 +6,28 @@ import (
 	log "github.com/Thanga-tamil/logger_lib"
 )
 
-func GetAvailableDishes(page, size int) (*sql.Rows, error) {
-	rows, err := config.DB.Query(`SELECT dish, available_upto, created_at FROM dishes LIMIT $1 OFFSET $2;`, size, page)
+func GetAllDishes(page, size int) (*sql.Rows, error) {
+	offset := (page - 1) * size
+
+	rows, err := config.DB.Query(`SELECT dish, available_upto, created_at FROM dishes LIMIT $1 OFFSET $2;`, size, offset)
 
 	if err != nil {
-		log.Error(err.Error()); return nil, err
+		log.Error(err.Error())
+		return nil, err
 	}
 
 	return rows, nil
 }
 
 func TotalRecordsOfAvailableDishes() (int, error) {
-	rows, err := config.DB.Query(`SELECT count(id) FROM dishes;`)
-
-	if err != nil {
-		log.Error(err.Error()); return -1, err
-	}
-
 	var totalRecords int
 
-	rows.Scan(&totalRecords)
+	err := config.DB.QueryRow(`SELECT COUNT(id) FROM dishes;`).Scan(&totalRecords)
+
+	if err != nil {
+		log.Error(err.Error())
+		return -1, err
+	}
 
 	return totalRecords, nil
 }

@@ -11,19 +11,8 @@ import (
 // of dishes will be updated by the respective restaurants.
 func GetAvailableDishes(ctx *gin.Context) {
 
-	dishes, totalRecords := service.GetAllDishes(ctx)
+	service.GetAllDishes(ctx)
 
-	if totalRecords == 0 {
-		ctx.JSON(http.StatusNoContent, ""); return 
-	}
-
-	success := map[string]any{
-						"message": "Available dishes retrieved successfully",
-						"data": dishes,
-						"totalRecords": len(dishes),
-					}
-
-	ctx.JSON(http.StatusOK, success)
 }
 
 
