@@ -8,10 +8,10 @@ import (
 
 var DB *sql.DB
 
-func NewSqlite() error {
+func NewSqlite(driverName, dataSourceName string) error {
 	log.Infof("Initialize sqlite db")
 
-	db, err := sql.Open("sqlite", "/home/milrine/projects/MoonWalk/moonwalk.db")
+	db, err := sql.Open(driverName, dataSourceName)
 	if err != nil {
 		return err
 	}

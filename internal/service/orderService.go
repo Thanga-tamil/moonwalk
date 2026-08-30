@@ -13,6 +13,7 @@ type Dish struct {
 
 func GetAvailableDishes() ([]Dish, int) {
 
+	// Retrieve available dishes from db 
 	rows := repository.GetAvailableDishes()
 
 	var dishes []Dish
@@ -27,5 +28,6 @@ func GetAvailableDishes() ([]Dish, int) {
 		dishes = append(dishes, dish)
 	}
 
+	// return list of dish and totol records of dishes
 	return dishes, len(dishes)
 }

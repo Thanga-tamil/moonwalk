@@ -2,27 +2,30 @@ package main
 
 import (
 	"fmt"
-	"moonwalk/internal/api/rest"
 	"moonwalk/internal/app"
+	"moonwalk/internal/utils"
+	"moonwalk/internal/config"
+	"moonwalk/internal/api/rest"
 
 	log "github.com/Thanga-tamil/logger_lib"
 )
 
 func main() {
-
 	fmt.Println("Initializing custom zap logger")
 
-	log.NewLogger("moonwalk.log")
+	log.NewLogger(utils.LogFile)
 
 	fmt.Println("Custom zap logger initialized successfully")
 
-	if err := app.Start(); err != nil {
+	conf := config.LoadConfig(utils.ConfigFile)
+
+	if err := app.Start(conf); err != nil {
 		// try one recovery for the collective good,
 		// upon more than one failure startup, stop 
 		// the service and start debugging 
 		panic(err)
 	}
 
-	rest.Serve("0.0.0.0:8080")
+	rest.Serve(utils.ServerAddr)
 }
 
