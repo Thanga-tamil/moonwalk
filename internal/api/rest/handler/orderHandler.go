@@ -1,7 +1,7 @@
 package handler
 
 import (
-	"moonwalk/internal/repository"
+	"moonwalk/internal/service"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
@@ -12,8 +12,7 @@ import (
 // of dishes will be updated by the respective restaurants.
 func GetAvailableDishes(ctx *gin.Context) {
 
-	dishes := repository.GetAvailableDishes()
-	totalRecords := len(repository.GetAvailableDishes())
+	dishes, totalRecords := service.GetAvailableDishes()
 
 	if totalRecords == 0 {
 		ctx.JSON(http.StatusNoContent, ""); return 
@@ -28,8 +27,7 @@ func GetAvailableDishes(ctx *gin.Context) {
 	ctx.JSON(http.StatusOK, success)
 }
 
+
 func PlaceOrder(ctx *gin.Context) {
-
 	ctx.JSON(http.StatusOK, map[string]string{"message": "Order placed successfully", "orderId": "?"})
-
 }
