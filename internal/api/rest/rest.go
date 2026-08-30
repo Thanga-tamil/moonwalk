@@ -7,7 +7,7 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-// start the http server with gin lib 
+// start and serve http server with gin lib 
 func Serve(ADDR string) {
 
 	// set in release mode

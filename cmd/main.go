@@ -17,6 +17,8 @@ func main() {
 
 	fmt.Println("Custom zap logger initialized successfully")
 
+	// load the service config from config.json file from the server 
+	// and init all the required services using the loaded config
 	conf := config.LoadConfig(utils.ConfigFile)
 
 	if err := app.Start(conf); err != nil {
