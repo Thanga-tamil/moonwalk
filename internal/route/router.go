@@ -8,6 +8,7 @@ import (
 
 func Router(ctx *gin.RouterGroup) {
 
+	ctx.GET("/dishes", handler.GetAvailableDishes)
 	ctx.POST("/order", handler.PlaceOrder)
 
 }
