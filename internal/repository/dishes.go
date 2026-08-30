@@ -9,7 +9,9 @@ import (
 func GetAllDishes(page, size int) (*sql.Rows, error) {
 	offset := (page - 1) * size
 
-	rows, err := config.DB.Query(`SELECT dish, is_available, available_upto, created_at FROM dishes LIMIT $1 OFFSET $2;`, size, offset)
+	q := `SELECT dish, is_available, price, available_upto, created_at FROM dishes LIMIT $1 OFFSET $2;`
+
+	rows, err := config.DB.Query(q, size, offset)
 
 	if err != nil {
 		log.Error(err.Error())

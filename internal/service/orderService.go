@@ -7,15 +7,16 @@ import (
 	"strconv"
 	"net/http"
 	"github.com/gin-gonic/gin"
+	log "github.com/Thanga-tamil/logger_lib"
 
 	"moonwalk/pkg"
 	"moonwalk/internal/repository"
-	log "github.com/Thanga-tamil/logger_lib"
 )
 
 type Dish struct {
 	Dish          string 		`json:"dish"`
 	IsAvailable   bool 			`json:"isAvailable"`
+	Price 		  int			`json:"price"`
 	AvailableUpto time.Time 	`json:"availableUpto"`
 	CreatedAt     time.Time 	`json:"createdAt"`
 }
@@ -33,6 +34,8 @@ func GetAllDishes(ctx *gin.Context) {
 	// Retrieve available dishes from db.
 	// let the query take of pagination using offset page + page 
 	// which will exclude the previous dataset
+	var dishes []Dish
+
 	rows, err := repository.GetAllDishes(page, size)
 	if err != nil {
 		log.Error("Error while retriving All Dishes from schema:", err.Error())
@@ -40,12 +43,11 @@ func GetAllDishes(ctx *gin.Context) {
 		return
 	}
 
-	var dishes []Dish
 	defer rows.Close()
 
 	for rows.Next() {
 		var dish Dish 
-		rows.Scan(&dish.Dish, &dish.IsAvailable, &dish.AvailableUpto, &dish.CreatedAt)
+		rows.Scan(&dish.Dish, &dish.IsAvailable, &dish.Price, &dish.AvailableUpto, &dish.CreatedAt)
 
 		dishes = append(dishes, dish)
 	}
@@ -65,6 +67,11 @@ func GetAllDishes(ctx *gin.Context) {
 	response := pkg.Success(200, "Data retrieved successfully", dishes, totalRecords, len(dishes))
 
 	ctx.JSON(http.StatusOK, response)
+}
+
+func writeErr(ctx *gin.Context, err string) {
+	response := pkg.Failure(http.StatusBadRequest, err)
+	ctx.JSON(http.StatusBadRequest, response)
 }
 
 func parseAndValidateGetAllDishesInput(ctx *gin.Context) (int, int, error) {
@@ -105,7 +112,3 @@ func parseAndValidateGetAllDishesInput(ctx *gin.Context) (int, int, error) {
 	return page, size, nil
 }
 
-func writeErr(ctx *gin.Context, err string) {
-	response := pkg.Failure(http.StatusBadRequest, err)
-	ctx.JSON(http.StatusBadRequest, response)
-}
