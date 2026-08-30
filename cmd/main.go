@@ -13,7 +13,7 @@ import (
 func main() {
 	fmt.Println("Initializing custom zap logger")
 
-	log.NewLogger(utils.LogFile)
+	log.NewLogger(utils.LogFile, "INFO")
 
 	fmt.Println("Custom zap logger initialized successfully")
 

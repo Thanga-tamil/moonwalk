@@ -14,16 +14,15 @@ import (
 )
 
 type Dish struct {
-	Dish          string
-	AvailableUpto time.Time
-	CreatedAt     time.Time
+	Dish          string 		`json:"dish"`
+	IsAvailable   bool 			`json:"isAvailable"`
+	AvailableUpto time.Time 	`json:"availableUpto"`
+	CreatedAt     time.Time 	`json:"createdAt"`
 }
 
 func GetAllDishes(ctx *gin.Context) {
 
 	page, size, err := parseAndValidateGetAllDishesInput(ctx)
-	log.Info("page:", page)
-	log.Info("size:", size)
 
 	if err != nil {
 		log.Error("Error while parsing integer from string:", err.Error())
@@ -46,20 +45,17 @@ func GetAllDishes(ctx *gin.Context) {
 
 	for rows.Next() {
 		var dish Dish 
-		rows.Scan(&dish.Dish, &dish.AvailableUpto, &dish.CreatedAt)
+		rows.Scan(&dish.Dish, &dish.IsAvailable, &dish.AvailableUpto, &dish.CreatedAt)
 
 		dishes = append(dishes, dish)
 	}
 
 	totalRecords, err := repository.TotalRecordsOfAvailableDishes()
-
 	if err != nil {
 		log.Error("Error while retriving data from schema:", err.Error())
 		writeErr(ctx, err.Error())
 		return
 	}
-
-	log.Info("totalRecords:", totalRecords)
 
 	if totalRecords == 0 {
 		ctx.JSON(http.StatusNoContent, "")
