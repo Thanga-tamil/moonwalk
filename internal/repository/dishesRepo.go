@@ -9,7 +9,7 @@ import (
 func GetAllDishes(page, size int) (*sql.Rows, error) {
 	offset := (page - 1) * size
 
-	q := `SELECT dish, is_available, price, available_upto, ` +
+	q := `SELECT id, dish, is_available, price, available_upto, ` +
 		 `created_at, concat(prep_time, " minutes") AS prep_time ` + 
 		 `FROM dishes LIMIT $1 OFFSET $2;`
 

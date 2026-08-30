@@ -15,6 +15,7 @@ import (
 )
 
 type Dish struct {
+	Id 			  int			`json:"id"`
 	Dish          string 		`json:"dish"`
 	IsAvailable   bool 			`json:"isAvailable"`
 	Price 		  int			`json:"price"`
@@ -53,7 +54,8 @@ func GetAllDishes(ctx *gin.Context) {
 	for rows.Next() {
 		var dish Dish 
 
-		err := rows.Scan(&dish.Dish, &dish.IsAvailable, &dish.Price, &dish.AvailableUpto, &dish.CreatedAt, &dish.PrepTime)
+		err := rows.Scan(&dish.Id, &dish.Dish, &dish.IsAvailable, &dish.Price, 
+						 &dish.AvailableUpto, &dish.CreatedAt, &dish.PrepTime)
 		if err != nil {
 			log.Debug("scan trace:", err.Error())
 		}
@@ -127,7 +129,7 @@ func parseAndValidateGetAllDishesInput(ctx *gin.Context) (int, int, error) {
 type Values map[string][]string
 
 func PlaceOrder(ctx *gin.Context) {
-	_, _, err := parseAndValidatePlaceOrderInput(ctx)
+	orderId, dishId, err := parseAndValidatePlaceOrderInput(ctx)
 
 	if err != nil {
 		log.Error("Error while parsing place order input:", err.Error())
@@ -135,10 +137,23 @@ func PlaceOrder(ctx *gin.Context) {
 		return
 	}
 
+	log.Infox(orderId, dishId)
+
 
 }
 
+type placeOrderInput struct {
+	OrderId 	int 
+	DishId 		string
+}
+
 func parseAndValidatePlaceOrderInput(ctx *gin.Context) (string, string, error) {
+	var data placeOrderInput
+
+	ctx.ShouldBindBodyWithJSON(&data)
+
+	dishId := data.DishId
+	orderId := data.OrderId
 	params := ctx.Request.URL.Query()
 
 	orderId := params.Get("orderId")

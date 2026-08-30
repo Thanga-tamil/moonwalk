@@ -22,7 +22,7 @@ func Serve(ADDR, serverMode string) {
 
 	route.Router(v1Group)
 
-	log.Infox("Application started successfully @ ", ADDR)
+	log.Infox("Application started successfully. Serving HTTP request response @ '", ADDR + "'")
 
 	serve.Run(ADDR) 
 }
