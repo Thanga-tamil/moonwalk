@@ -1,10 +1,9 @@
 package handler
 
 import (
-	"moonwalk/internal/service"
 	"net/http"
-
 	"github.com/gin-gonic/gin"
+	"moonwalk/internal/service"
 )
 
 // GetAvailableDishes function returns a list of available dishes
@@ -12,7 +11,7 @@ import (
 // of dishes will be updated by the respective restaurants.
 func GetAvailableDishes(ctx *gin.Context) {
 
-	dishes, totalRecords := service.GetAvailableDishes()
+	dishes, totalRecords := service.GetAllDishes(ctx)
 
 	if totalRecords == 0 {
 		ctx.JSON(http.StatusNoContent, ""); return 
