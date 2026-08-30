@@ -1,16 +1,25 @@
 package app
 
 import (
-	"moonwalk/internal/config"
 	"moonwalk/pkg"
 
+	"database/sql"
+	"moonwalk/internal/config"
 	log "github.com/Thanga-tamil/logger_lib"
 )
 
+var DB *sql.DB
+
 func Start(conf *pkg.ServiceConfig) error {
 	log.Info("Connecting to required external i/o services")
-	if err := config.NewSqlite(conf.SqlDriverName, conf.SqlDataSourceName); err != nil {
+
+	var err error
+
+	DB, err = config.NewSqlite(conf.SqlDriverName, conf.SqlDataSourceName);
+	if  err != nil {
 		return err
 	}
+
+	log.Infox("Connection established with all required external i/o services successfully")
 	return nil
 }

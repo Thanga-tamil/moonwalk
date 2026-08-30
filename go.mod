@@ -3,7 +3,7 @@ module moonwalk
 go 1.26.4
 
 require (
-	github.com/Thanga-tamil/logger_lib v0.0.2
+	github.com/Thanga-tamil/logger_lib v0.0.5
 	github.com/gin-gonic/gin v1.12.0
 	github.com/glebarez/go-sqlite v1.23.0
 )

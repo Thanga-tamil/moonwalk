@@ -2,16 +2,16 @@ package rest
 
 import (
 	"strings"
+	"github.com/gin-gonic/gin"
 	"moonwalk/internal/middleware"
 	"moonwalk/internal/api/rest/route"
-	"github.com/gin-gonic/gin"
+	log "github.com/Thanga-tamil/logger_lib"
 )
 
 // start and serve http server with gin lib 
-func Serve(ADDR string) {
+func Serve(ADDR, serverMode string) {
 
-	// set in release mode
-	setGinMode("")
+	setGinMode(serverMode)
 
 	serve := gin.New()
 
@@ -21,6 +21,8 @@ func Serve(ADDR string) {
 	v1Group := serve.Group("/api/v1")
 
 	route.Router(v1Group)
+
+	log.Infox("Application started successfully @ ", ADDR)
 
 	serve.Run(ADDR) 
 }

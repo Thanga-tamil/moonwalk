@@ -1,7 +1,6 @@
 package handler
 
 import (
-	"net/http"
 	"github.com/gin-gonic/gin"
 	"moonwalk/internal/service"
 )
@@ -14,5 +13,5 @@ func GetAllDishes(ctx *gin.Context) {
 }
 
 func PlaceOrder(ctx *gin.Context) {
-	ctx.JSON(http.StatusOK, map[string]string{"message": "Order placed successfully", "orderId": "?"})
+	service.PlaceOrder(ctx)
 }

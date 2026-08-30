@@ -6,18 +6,14 @@ import (
 	_ "github.com/glebarez/go-sqlite"
 )
 
-var DB *sql.DB
-
-func NewSqlite(driverName, dataSourceName string) error {
+func NewSqlite(driverName, dataSourceName string) (*sql.DB, error) {
 	log.Infof("Initialize sqlite db")
 
 	db, err := sql.Open(driverName, dataSourceName)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
-	DB = db
-
-	log.Info("Sqlite connection established and loaded in service in-memory successfully")
-	return nil
+	log.Infox("Sqlite connection established and loaded in service in-memory successfully")
+	return db, nil
 }

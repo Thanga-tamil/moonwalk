@@ -2,9 +2,9 @@ package config
 
 import (
 	"os"
+	"log"
 	"moonwalk/pkg"
 	"encoding/json"
-	log "github.com/Thanga-tamil/logger_lib"
 )
 
 func LoadConfig(path string) *pkg.ServiceConfig {

@@ -5,6 +5,7 @@ import (
 	"time"
 	"errors"
 	"strconv"
+	"strings"
 	"net/http"
 	"github.com/gin-gonic/gin"
 	log "github.com/Thanga-tamil/logger_lib"
@@ -17,13 +18,17 @@ type Dish struct {
 	Dish          string 		`json:"dish"`
 	IsAvailable   bool 			`json:"isAvailable"`
 	Price 		  int			`json:"price"`
-	AvailableUpto time.Time 	`json:"availableUpto"`
+	AvailableUpto string	 	`json:"availableUpto"`
 	CreatedAt     time.Time 	`json:"createdAt"`
+	PrepTime      string 		`json:"prepTime"`
 }
 
 func GetAllDishes(ctx *gin.Context) {
 
 	page, size, err := parseAndValidateGetAllDishesInput(ctx)
+
+	log.Debug("^GetAllDishes input param page:", page)
+	log.Debug("^GetAllDishes input param size:", page)
 
 	if err != nil {
 		log.Error("Error while parsing integer from string:", err.Error())
@@ -47,7 +52,11 @@ func GetAllDishes(ctx *gin.Context) {
 
 	for rows.Next() {
 		var dish Dish 
-		rows.Scan(&dish.Dish, &dish.IsAvailable, &dish.Price, &dish.AvailableUpto, &dish.CreatedAt)
+
+		err := rows.Scan(&dish.Dish, &dish.IsAvailable, &dish.Price, &dish.AvailableUpto, &dish.CreatedAt, &dish.PrepTime)
+		if err != nil {
+			log.Debug("scan trace:", err.Error())
+		}
 
 		dishes = append(dishes, dish)
 	}
@@ -59,12 +68,15 @@ func GetAllDishes(ctx *gin.Context) {
 		return
 	}
 
+	log.Debug("^GetAllDishes totalRecords:", totalRecords)
 	if totalRecords == 0 {
 		ctx.JSON(http.StatusNoContent, "")
 		return 
 	}
 
 	response := pkg.Success(200, "Data retrieved successfully", dishes, totalRecords, len(dishes))
+
+	log.Debugf("^GetAllDishes response: %#v", response)
 
 	ctx.JSON(http.StatusOK, response)
 }
@@ -112,3 +124,32 @@ func parseAndValidateGetAllDishesInput(ctx *gin.Context) (int, int, error) {
 	return page, size, nil
 }
 
+type Values map[string][]string
+
+func PlaceOrder(ctx *gin.Context) {
+	_, _, err := parseAndValidatePlaceOrderInput(ctx)
+
+	if err != nil {
+		log.Error("Error while parsing place order input:", err.Error())
+		writeErr(ctx, err.Error())
+		return
+	}
+
+
+}
+
+func parseAndValidatePlaceOrderInput(ctx *gin.Context) (string, string, error) {
+	params := ctx.Request.URL.Query()
+
+	orderId := params.Get("orderId")
+	if strings.TrimSpace(orderId) == "" {
+		return "", "", errors.New("orderId must not be empty")
+	}
+
+	dishId := params.Get("dishId")
+	if strings.TrimSpace(dishId) == "" {
+		return "", "", errors.New("dishId must not be empty")
+	}
+
+	return orderId, dishId, nil
+}
