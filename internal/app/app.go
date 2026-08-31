@@ -2,13 +2,13 @@ package app
 
 import (
 	"moonwalk/pkg"
-
-	"database/sql"
 	"moonwalk/internal/config"
+
+	"gorm.io/gorm"
 	log "github.com/Thanga-tamil/logger_lib"
 )
 
-var DB *sql.DB
+var DB *gorm.DB
 
 func Start(conf *pkg.ServiceConfig) error {
 	log.Info("Connecting to required external i/o services")

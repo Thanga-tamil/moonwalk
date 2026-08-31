@@ -44,27 +44,12 @@ func GetAllDishes(ctx *gin.Context) {
 
 	// Retrieve available dishes from db.
 	// let the query take care of pagination using limit & offset 
-	var dishes []pkg.Dish
 
-	rows, err := repository.GetAllDishes(page, size)
+	dishes, err := repository.GetAllDishes(page, size)
 	if err != nil {
 		log.Error("Error while retriving All Dishes from schema:", err.Error())
 		writeErr(ctx, err.Error())
 		return
-	}
-
-	defer rows.Close()
-
-	for rows.Next() {
-		var dish pkg.Dish 
-
-		err := rows.Scan(&dish.Id, &dish.Dish, &dish.IsAvailable, &dish.Price, 
-						 &dish.AvailableUpto, &dish.CreatedAt, &dish.PrepTime)
-		if err != nil {
-			log.Debug("scan trace:", err.Error())
-		}
-
-		dishes = append(dishes, dish)
 	}
 
 	response := pkg.Success(200, "Data retrieved successfully", dishes, totalRecords, len(dishes))
@@ -131,11 +116,11 @@ func PlaceOrder(ctx *gin.Context) {
 		log.Error("Error while parsing place order input:", err.Error())
 		writeErr(ctx, err.Error())
 		return
-	} else if exists == 0 {
+	} else if exists == false {
 		writeErr(ctx, "dish not found for the input dishId")
 		return
 	}
-	
+
 	log.Infox(exists)
 	log.Infofx("%#v\n", *data)
 }

@@ -1,15 +1,15 @@
 package config
 
 import (
-	"database/sql"
+	"gorm.io/driver/sqlite"
+	"gorm.io/gorm"
 	log "github.com/Thanga-tamil/logger_lib"
-	_ "github.com/glebarez/go-sqlite"
 )
 
-func NewSqlite(driverName, dataSourceName string) (*sql.DB, error) {
+func NewSqlite(driverName, dataSourceName string) (*gorm.DB, error) {
 	log.Infof("Initialize sqlite db")
 
-	db, err := sql.Open(driverName, dataSourceName)
+	db, err := gorm.Open(sqlite.Open(dataSourceName), &gorm.Config{})
 	if err != nil {
 		return nil, err
 	}

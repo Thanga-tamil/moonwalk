@@ -1,6 +1,6 @@
 package pkg
 
-func Success(statusCode int, msg string, data any, totalRecords, count int) any {
+func Success(statusCode, msg, data, totalRecords, count any) any {
 	return map[string]any{
 		"data": data,
 		"message": msg,
@@ -10,7 +10,7 @@ func Success(statusCode int, msg string, data any, totalRecords, count int) any 
 	}
 }
 
-func Failure(statusCode int, msg string) any {
+func Failure(statusCode, msg any) any {
 	return map[string]any{
 		"message": msg,
 		"statusCode": statusCode,

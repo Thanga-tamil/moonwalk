@@ -1,34 +1,34 @@
 package repository
 
 import (
-	"database/sql"
+	"moonwalk/pkg"
 	"moonwalk/internal/app"
 	log "github.com/Thanga-tamil/logger_lib"
 )
 
-func GetAllDishes(page, size int) (*sql.Rows, error) {
+func GetAllDishes(page, size int) ([]pkg.Dish, error) {
 	offset := (page - 1) * size
 
-	q := `SELECT id, dish, is_available, price, available_upto, ` +
-		 `created_at, concat(prep_time, " minutes") AS prep_time ` + 
-		 `FROM dishes LIMIT $1 OFFSET $2;`
+	var dishes []pkg.Dish
 
-	log.Debugf("Query: %s ? LIMIT: %d OFFSET: %d", q, size, offset)
-
-	rows, err := app.DB.Query(q, size, offset)
+	err := app.DB.Table("dishes").
+				  Select(`id, dish, is_available, price, available_upto, created_at, (prep_time || ' minutes') AS prep_time`).
+				  Limit(size).Offset(offset).
+				  Scan(&dishes).
+				  Error
 
 	if err != nil {
 		log.Error(err.Error())
 		return nil, err
 	}
 
-	return rows, nil
+	return dishes, nil
 }
 
-func TotalRecordsOfAvailableDishes() (int, error) {
-	var totalRecords int
+func TotalRecordsOfAvailableDishes() (int64, error) {
+	var totalRecords int64
 
-	err := app.DB.QueryRow(`SELECT COUNT(id) FROM dishes;`).Scan(&totalRecords)
+	err := app.DB.Table("dishes").Count(&totalRecords).Error
 
 	if err != nil {
 		log.Error(err.Error())
@@ -38,14 +38,14 @@ func TotalRecordsOfAvailableDishes() (int, error) {
 	return totalRecords, nil
 }
 
-func IsDishExists(dishId int) (int, error) {
+func IsDishExists(dishID int) (bool, error) {
+	var exists bool
 
-	var exists int
-	err := app.DB.QueryRow(`SELECT EXISTS (SELECT id FROM dishes WHERE id = $1) AS IsDishExists;`, dishId).Scan(&exists)
+	err := app.DB.Raw("SELECT EXISTS (SELECT 1 FROM dishes WHERE id = ?)", dishID).Scan(&exists).Error
 
 	if err != nil {
 		log.Error(err.Error())
-		return -1, err
+		return false, err
 	}
 
 	return exists, nil
