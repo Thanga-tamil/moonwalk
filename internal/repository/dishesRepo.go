@@ -25,7 +25,7 @@ func GetAllDishes(page, size int) ([]pkg.Dish, error) {
 	return dishes, nil
 }
 
-func TotalRecordsOfAvailableDishes() (int64, error) {
+func TotalRecordsOfDishes() (int64, error) {
 	var totalRecords int64
 
 	err := app.DB.Table("dishes").Count(&totalRecords).Error

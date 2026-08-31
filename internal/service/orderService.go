@@ -1,21 +1,22 @@
 package service
 
 import (
-	"fmt"
 	"errors"
-	"strconv"
-	"strings"
 	"net/http"
-	"github.com/gin-gonic/gin"
-	log "github.com/Thanga-tamil/logger_lib"
+	"strings"
+	"time"
 
-	"moonwalk/pkg"
+	log "github.com/Thanga-tamil/logger_lib"
+	"github.com/gin-gonic/gin"
+
 	"moonwalk/internal/repository"
+	"moonwalk/internal/utils"
+	"moonwalk/pkg"
 )
 
 func GetAllDishes(ctx *gin.Context) {
 
-	page, size, err := parseAndValidateGetAllDishesInput(ctx)
+	page, size, err := utils.Pagination(ctx)
 
 	log.Debug("^GetAllDishes input param page:", page)
 	log.Debug("^GetAllDishes input param size:", page)
@@ -29,7 +30,7 @@ func GetAllDishes(ctx *gin.Context) {
 	// since the pagination handled in query itself, we can't get the 
 	// totalRecords from the retrieved dataset, so handle and return no 
 	// records case before processing the data
-	totalRecords, err := repository.TotalRecordsOfAvailableDishes()
+	totalRecords, err := repository.TotalRecordsOfDishes()
 	if err != nil {
 		log.Error("Error while retriving data from schema:", err.Error())
 		writeErr(ctx, err.Error())
@@ -60,46 +61,8 @@ func GetAllDishes(ctx *gin.Context) {
 }
 
 func writeErr(ctx *gin.Context, err string) {
-	response := pkg.Failure(http.StatusBadRequest, err)
+	response := pkg.Failure(400, err)
 	ctx.JSON(http.StatusBadRequest, response)
-}
-
-func parseAndValidateGetAllDishesInput(ctx *gin.Context) (int, int, error) {
-	const (
-		defaultPage = 1
-		defaultSize = 10
-	)
-
-	page := defaultPage
-	size := defaultSize
-
-	if pageStr := ctx.Query("page"); pageStr != "" {
-		var err error
-
-		page, err = strconv.Atoi(pageStr)
-		if err != nil {
-			return 0, 0, fmt.Errorf("invalid page %q: %w", pageStr, err)
-		}
-
-		if page < 1 {
-			return 0, 0, errors.New("page must be greater than 0")
-		}
-	}
-
-	if sizeStr := ctx.Query("size"); sizeStr != "" {
-		var err error
-
-		size, err = strconv.Atoi(sizeStr)
-		if err != nil {
-			return 0, 0, fmt.Errorf("invalid size %q: %w", sizeStr, err)
-		}
-
-		if size < 1 {
-			return 0, 0, errors.New("size must be greater than 0")
-		}
-	}
-
-	return page, size, nil
 }
 
 func PlaceOrder(ctx *gin.Context) {
@@ -123,6 +86,16 @@ func PlaceOrder(ctx *gin.Context) {
 
 	log.Infox(exists)
 	log.Infofx("%#v\n", *data)
+
+	order :=
+	pkg.Order{
+		OrderId: data.OrderId, 
+		DishId: data.DishId, 
+		PrepTime: "15", 
+		CreatedAt: time.Now(),
+	}
+
+	repository.Save(&order)
 }
 
 func parseAndValidatePlaceOrderInput(ctx *gin.Context) (*pkg.PlaceOrderDto, error) {

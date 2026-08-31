@@ -25,10 +25,10 @@ type PlaceOrderDto struct {
 }
 
 type Order struct {
-	Id 			  int			`json:"id"`
 	OrderId       string 		`json:"orderId"`
 	DishId        int	 		`json:"dishId"`
-	Price 		  int			`json:"price"`
 	CreatedAt     time.Time 	`json:"createdAt"`
 	PrepTime      string 		`json:"prepTime"`
 }
+
+
