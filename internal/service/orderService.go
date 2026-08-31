@@ -2,7 +2,6 @@ package service
 
 import (
 	"fmt"
-	"time"
 	"errors"
 	"strconv"
 	"strings"
@@ -13,16 +12,6 @@ import (
 	"moonwalk/pkg"
 	"moonwalk/internal/repository"
 )
-
-type Dish struct {
-	Id 			  int			`json:"id"`
-	Dish          string 		`json:"dish"`
-	IsAvailable   bool 			`json:"isAvailable"`
-	Price 		  int			`json:"price"`
-	AvailableUpto string	 	`json:"availableUpto"`
-	CreatedAt     time.Time 	`json:"createdAt"`
-	PrepTime      string 		`json:"prepTime"`
-}
 
 func GetAllDishes(ctx *gin.Context) {
 
@@ -40,7 +29,7 @@ func GetAllDishes(ctx *gin.Context) {
 	// Retrieve available dishes from db.
 	// let the query take of pagination using offset page + page 
 	// which will exclude the previous dataset
-	var dishes []Dish
+	var dishes []pkg.Dish
 
 	rows, err := repository.GetAllDishes(page, size)
 	if err != nil {
@@ -52,7 +41,7 @@ func GetAllDishes(ctx *gin.Context) {
 	defer rows.Close()
 
 	for rows.Next() {
-		var dish Dish 
+		var dish pkg.Dish 
 
 		err := rows.Scan(&dish.Id, &dish.Dish, &dish.IsAvailable, &dish.Price, 
 						 &dish.AvailableUpto, &dish.CreatedAt, &dish.PrepTime)
@@ -126,45 +115,44 @@ func parseAndValidateGetAllDishesInput(ctx *gin.Context) (int, int, error) {
 	return page, size, nil
 }
 
-type Values map[string][]string
-
 func PlaceOrder(ctx *gin.Context) {
-	orderId, dishId, err := parseAndValidatePlaceOrderInput(ctx)
 
+	data, err := parseAndValidatePlaceOrderInput(ctx)
 	if err != nil {
 		log.Error("Error while parsing place order input:", err.Error())
 		writeErr(ctx, err.Error())
 		return
 	}
 
-	log.Infox(orderId, dishId)
-
-
+	exists, err := repository.IsDishExists(data.DishId)
+	if err != nil {
+		log.Error("Error while parsing place order input:", err.Error())
+		writeErr(ctx, err.Error())
+		return
+	} else if exists == 0 {
+		writeErr(ctx, "dish not found for the input dishId")
+		return
+	}
+	
+	log.Infox(exists)
+	log.Infofx("%#v\n", *data)
 }
 
-type placeOrderInput struct {
-	OrderId 	int 
-	DishId 		string
-}
+func parseAndValidatePlaceOrderInput(ctx *gin.Context) (*pkg.PlaceOrderDto, error) {
 
-func parseAndValidatePlaceOrderInput(ctx *gin.Context) (string, string, error) {
-	var data placeOrderInput
+	var dishId int 
+	var orderId string
+	var data pkg.PlaceOrderDto
 
 	ctx.ShouldBindBodyWithJSON(&data)
 
-	dishId := data.DishId
-	orderId := data.OrderId
-	params := ctx.Request.URL.Query()
-
-	orderId := params.Get("orderId")
-	if strings.TrimSpace(orderId) == "" {
-		return "", "", errors.New("orderId must not be empty")
+	if dishId = data.DishId; dishId < 1 {
+		return nil, errors.New("dishId must not be empty and dishId must be greater than 0")
 	}
 
-	dishId := params.Get("dishId")
-	if strings.TrimSpace(dishId) == "" {
-		return "", "", errors.New("dishId must not be empty")
+	if orderId = data.OrderId; strings.TrimSpace(orderId) == "" {
+		return nil, errors.New("orderId must not be empty")
 	}
 
-	return orderId, dishId, nil
+	return &data, nil
 }

@@ -13,7 +13,7 @@ func GetAllDishes(page, size int) (*sql.Rows, error) {
 		 `created_at, concat(prep_time, " minutes") AS prep_time ` + 
 		 `FROM dishes LIMIT $1 OFFSET $2;`
 
-	log.Debugf("Query: %s >> size=%d offset=%d", q, size, offset)
+	log.Debugf("Query: %s ? LIMIT: %d OFFSET: %d", q, size, offset)
 
 	rows, err := app.DB.Query(q, size, offset)
 
@@ -36,4 +36,17 @@ func TotalRecordsOfAvailableDishes() (int, error) {
 	}
 
 	return totalRecords, nil
+}
+
+func IsDishExists(dishId int) (int, error) {
+
+	var exists int
+	err := app.DB.QueryRow(`SELECT EXISTS (SELECT id FROM dishes WHERE id = $1) AS IsDishExists;`, dishId).Scan(&exists)
+
+	if err != nil {
+		log.Error(err.Error())
+		return -1, err
+	}
+
+	return exists, nil
 }
