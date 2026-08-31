@@ -26,9 +26,24 @@ func GetAllDishes(ctx *gin.Context) {
 		return
 	}
 
+	// since the pagination handled in query itself, we can't get the 
+	// totalRecords from the retrieved dataset, so handle and return no 
+	// records case before processing the data
+	totalRecords, err := repository.TotalRecordsOfAvailableDishes()
+	if err != nil {
+		log.Error("Error while retriving data from schema:", err.Error())
+		writeErr(ctx, err.Error())
+		return
+	}
+
+	log.Debug("^GetAllDishes totalRecords:", totalRecords)
+	if totalRecords == 0 {
+		ctx.JSON(http.StatusNoContent, "")
+		return 
+	}
+
 	// Retrieve available dishes from db.
-	// let the query take of pagination using offset page + page 
-	// which will exclude the previous dataset
+	// let the query take care of pagination using limit & offset 
 	var dishes []pkg.Dish
 
 	rows, err := repository.GetAllDishes(page, size)
@@ -50,19 +65,6 @@ func GetAllDishes(ctx *gin.Context) {
 		}
 
 		dishes = append(dishes, dish)
-	}
-
-	totalRecords, err := repository.TotalRecordsOfAvailableDishes()
-	if err != nil {
-		log.Error("Error while retriving data from schema:", err.Error())
-		writeErr(ctx, err.Error())
-		return
-	}
-
-	log.Debug("^GetAllDishes totalRecords:", totalRecords)
-	if totalRecords == 0 {
-		ctx.JSON(http.StatusNoContent, "")
-		return 
 	}
 
 	response := pkg.Success(200, "Data retrieved successfully", dishes, totalRecords, len(dishes))
