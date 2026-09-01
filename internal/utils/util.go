@@ -55,3 +55,16 @@ func Pagination(ctx *gin.Context) (int, int, error) {
 func GetRandomUUID() string {
 	return uuid.New().String()
 }
+
+func Filter[T any](items []T, fn func(T) bool) []T {
+    result := make([]T, 0)
+
+    for _, item := range items {
+        if fn(item) {
+            result = append(result, item)
+        }
+    }
+
+    return result
+}
+

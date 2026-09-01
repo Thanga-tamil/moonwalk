@@ -1,41 +1,40 @@
 package service
 
 import (
-	"time"
-	"moonwalk/pkg"
 	"moonwalk/internal/utils"
+	"moonwalk/pkg"
+	"time"
+
 	log "github.com/Thanga-tamil/logger_lib"
 )
 
-// Order struct {
-// 	OrderId     string    `json:"orderId"`
-// 	DishId      int       `json:"dishId"`
-// 	Chef        string    `json:"chef"`
-// 	Status      string    `json:"status"`
-// 	Eta         time.Time `json:"eta"`
-// 	Algorithm   string    `json:"alg"`
-// 	CreatedAt   time.Time `json:"createdAt"`
-// 	UpdatedAt   time.Time `json:"updatedAt"`
-// }
-func scheduler(dish pkg.Dish, chefs *[]pkg.Chefs) pkg.Order {
-
+func scheduler(dish pkg.Dish, resources *[]pkg.Resources) pkg.Order {
 	var order pkg.Order 
 
-	for _, chef := range *chefs {
-		log.Info("hello cook:", chef)
-		if chef.ChefStatus == "IDLE" {
-			order = pkg.Order{	
-								OrderId: utils.GetRandomUUID(),
-								DishId: dish.Id,
-								Chef: chef.Chef,
-								Status: "PENDING",
-								// Eta: nil,
-								// Algorithm: ,
-								CreatedAt: time.Now(),
-								}
+	filtered := utils.Filter(resources, func(r pkg.Resources) bool {
+		return r.Type == "something"
+	})
+
+	if dish.PreCooked {
+		for _, res := range *resources {
+			log.Info("hello cook:", res)
+			if res.ChefStatus == "IDLE" {
+				// buildOrder()
+			}
 		}
 	}
 
 	return order
 }
 
+func buildOrder(alg, chef string, dishId int, eta time.Time) pkg.Order {
+	return pkg.Order{
+		Eta: eta,
+		Chef: chef,
+		DishId: dishId,
+		Algorithm: alg,
+		Status: "PENDING",
+		CreatedAt: time.Now(),
+		OrderId: utils.GetRandomUUID(),
+	}
+}

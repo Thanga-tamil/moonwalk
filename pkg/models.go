@@ -13,10 +13,11 @@ type Dish struct {
 	Id          int       `json:"id"`
 	Dish        string    `json:"dish"`
 	Price       int       `json:"price"`
-	PrepTime    int       `json:"prepTime"` // in minutes
-	IsAvailable bool      `json:"isAvailable"`
-	CreatedAt   time.Time `json:"createdAt"`
-	UpdatedAt   time.Time `json:"updatedAt"`
+	PrepTime    int       `json:"prep_time"` // in minutes
+	IsAvailable bool      `json:"is_available"`
+	CreatedAt   time.Time `json:"created_at"`
+	UpdatedAt   time.Time `json:"updated_at"`
+	PreCooked	bool	  `json:"pre_cooked"`
 }
 
 type PlaceOrderDto struct {
@@ -24,18 +25,18 @@ type PlaceOrderDto struct {
 }
 
 type Order struct {
-	OrderId     string    `json:"orderId"`
-	DishId      int       `json:"dishId"`
+	OrderId     string    `json:"order_id"`
+	DishId      int       `json:"dish_id"`
 	Chef        string    `json:"chef"`
 	Status      string    `json:"status"`
 	Eta         time.Time `json:"eta"`
 	Algorithm   string    `json:"alg"`
-	CreatedAt   time.Time `json:"createdAt"`
-	UpdatedAt   time.Time `json:"updatedAt"`
+	CreatedAt   time.Time `json:"created_at"`
+	UpdatedAt   time.Time `json:"updated_at"`
 }
 
-type Chefs struct {
-	Chef           string    `gorm:"column:chef" json:"chef"`
+type Resources struct {
+	Type           string    `gorm:"column:chef" json:"type"`
 	CurrentOrderID string    `gorm:"column:current_order_id" json:"current_order_id"`
 	ChefStatus     string    `gorm:"column:chef_status" json:"chef_status"`
 	OrderStatus    string    `gorm:"column:order_status" json:"order_status"`

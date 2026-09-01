@@ -74,13 +74,13 @@ func PlaceOrder(ctx *gin.Context, data *pkg.PlaceOrderDto) {
 		WriteErr(ctx, "dish not found for the input dishId"); return
 	}
 
-	chefs, err := repository.GetChefs()
+	resources, err := repository.GetResources()
 
 	if err != nil { 
 		WriteErr(ctx, err.Error()); return
 	}
 
-	scheduler(dish, chefs)
+	scheduler(dish, resources)
 
 	// order := pkg.Order{ OrderId: utils.GetRandomUUID(), 
 	// 					DishId: data.DishId, 
