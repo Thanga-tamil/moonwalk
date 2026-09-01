@@ -12,7 +12,8 @@ func GetAllDishes(page, size int) ([]pkg.Dish, error) {
 	var dishes []pkg.Dish
 
 	err := app.DB.Table("dishes").
-				  Select(`id, dish, is_available, price, available_upto, created_at, (prep_time || ' minutes') AS prep_time`).
+				  Select(`id, dish, price, (prep_time || ' minutes') AS prep_time, ` +
+				  		 `is_available, created_at`).
 				  Limit(size).Offset(offset).
 				  Scan(&dishes).
 				  Error
@@ -38,15 +39,16 @@ func TotalRecordsOfDishes() (int64, error) {
 	return totalRecords, nil
 }
 
-func IsDishExists(dishID int) (bool, error) {
-	var exists bool
+func GetDish(dishID int) (*pkg.Dish, error) {
+	var dish pkg.Dish
 
-	err := app.DB.Raw("SELECT EXISTS (SELECT 1 FROM dishes WHERE id = ?)", dishID).Scan(&exists).Error
+	err := app.DB.Raw("SELECT * FROM dishes WHERE id = ?", dishID).Scan(&dish).Error
 
 	if err != nil {
 		log.Error(err.Error())
-		return false, err
+		return nil, err
 	}
 
-	return exists, nil
+	return &dish, nil
 }
+

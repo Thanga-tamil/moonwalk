@@ -5,6 +5,7 @@ import (
 	"errors"
 	"strconv"
 	"github.com/gin-gonic/gin"
+	"github.com/google/uuid"
 )
 
 const (
@@ -49,4 +50,8 @@ func Pagination(ctx *gin.Context) (int, int, error) {
 	}
 
 	return page, size, nil
+}
+
+func GetRandomUUID() string {
+	return uuid.New().String()
 }

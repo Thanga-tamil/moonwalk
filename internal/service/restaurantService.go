@@ -3,8 +3,6 @@ package service
 import (
 	"errors"
 	"net/http"
-	"strings"
-	"time"
 
 	log "github.com/Thanga-tamil/logger_lib"
 	"github.com/gin-gonic/gin"
@@ -53,37 +51,42 @@ func WriteErr(ctx *gin.Context, err string) {
 }
 
 func ValidatePlaceOrderInput(ctx *gin.Context) (*pkg.PlaceOrderDto, error) {
-	var dishId int 
-	var orderId string
 	var data pkg.PlaceOrderDto
 
-	ctx.ShouldBindBodyWithJSON(&data)
-
-	if dishId = data.DishId; dishId < 1 {
-		return nil, errors.New("dishId must not be empty and dishId must be greater than 0")
+	if err := ctx.ShouldBindBodyWithJSON(&data); err != nil {
+		return nil, errors.New(err.Error())
 	}
 
-	if orderId = data.OrderId; strings.TrimSpace(orderId) == "" {
-		return nil, errors.New("orderId must not be empty")
+	if data.DishId < 1 {
+		return nil, errors.New("dishId must not be empty and dishId must be greater than 0")
 	}
 
 	return &data, nil
 }
 
 func PlaceOrder(ctx *gin.Context, data *pkg.PlaceOrderDto) {
-
-	exists, err := repository.IsDishExists(data.DishId)
+	dish, err := repository.GetDish(data.DishId)
 
 	if err != nil {
 		log.Error("Error while parsing place order input:", err.Error())
 		WriteErr(ctx, err.Error()); return
-	} else if exists == false {
+	} else if dish == nil {
 		WriteErr(ctx, "dish not found for the input dishId"); return
 	}
 
-	order := pkg.Order{ OrderId: data.OrderId, DishId: data.DishId, 
-						PrepTime: "15", CreatedAt: time.Now() }
+	chefs, err := repository.GetChefs()
 
-	repository.Save(&order)
+	if err != nil { 
+		WriteErr(ctx, err.Error()); return
+	}
+
+	scheduler(dish, chefs)
+
+	// order := pkg.Order{ OrderId: utils.GetRandomUUID(), 
+	// 					DishId: data.DishId, 
+	// 					Chef: dish.,
+	// 					CreatedAt: time.Now() }
+
+	// repository.Save(&order)
 }
 
