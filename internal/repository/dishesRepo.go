@@ -39,16 +39,16 @@ func TotalRecordsOfDishes() (int64, error) {
 	return totalRecords, nil
 }
 
-func GetDish(dishID int) (*pkg.Dish, error) {
+func GetDish(dishID int) (pkg.Dish, error) {
 	var dish pkg.Dish
 
 	err := app.DB.Raw("SELECT * FROM dishes WHERE id = ?", dishID).Scan(&dish).Error
 
 	if err != nil {
 		log.Error(err.Error())
-		return nil, err
+		return dish, err
 	}
 
-	return &dish, nil
+	return dish, nil
 }
 

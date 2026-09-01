@@ -70,7 +70,7 @@ func PlaceOrder(ctx *gin.Context, data *pkg.PlaceOrderDto) {
 	if err != nil {
 		log.Error("Error while parsing place order input:", err.Error())
 		WriteErr(ctx, err.Error()); return
-	} else if dish == nil {
+	} else if dish.Dish == "" {
 		WriteErr(ctx, "dish not found for the input dishId"); return
 	}
 
