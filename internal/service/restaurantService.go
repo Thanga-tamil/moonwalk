@@ -81,6 +81,16 @@ func PlaceOrder(ctx *gin.Context, data *pkg.PlaceOrderDto) {
 
 	order := scheduler(dish, resources)
 
-	repository.Save(&order)
+	if err := repository.Save(&order); err != nil {
+		WriteErr(ctx, err.Error()); return
+	}
+
+	if order.ResourceId > 0 {
+		order.Status = "PREPARING"
+		repository.UpdateOrderStatus(order.OrderId, order.Status)
+		repository.UpdateResourceStatus(order.ResourceId, BUSY, order.OrderId)
+	}
+
+	ctx.JSON(http.StatusOK, pkg.Success(200, "Order placed successfully", order, 0, 1))
 }
 
