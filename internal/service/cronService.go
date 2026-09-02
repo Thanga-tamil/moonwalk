@@ -45,6 +45,10 @@ func processCompletedOrders() {
 				log.Error("Cron: error freeing resource:", err.Error())
 			}
 		}
+
+		// audit the transition to SERVED
+		o.Status = "SERVED"
+		recordExecution(&o)
 	}
 }
 
@@ -71,7 +75,13 @@ func processPendingOrders() {
 			continue
 		}
 
-		assigned := scheduler(dish, resources)
+		backlogMinutes, err := backlogFor(dish)
+		if err != nil {
+			log.Error("Cron: error computing backlog:", err.Error())
+			continue
+		}
+
+		assigned := scheduler(dish, resources, backlogMinutes)
 		if assigned.ResourceId > 0 {
 			log.Infox("Cron: assigning pending order", o.OrderId, "to resource", assigned.ResourceId)
 			if err := repository.UpdateOrderStatus(o.OrderId, "PREPARING"); err != nil {
@@ -88,6 +98,11 @@ func processPendingOrders() {
 					break
 				}
 			}
+
+			// audit the transition to PREPARING
+			o.Status = "PREPARING"
+			o.ResourceId = assigned.ResourceId
+			recordExecution(&o)
 		}
 	}
 }

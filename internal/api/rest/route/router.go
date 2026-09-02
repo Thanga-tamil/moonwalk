@@ -9,5 +9,6 @@ func Router(ctx *gin.RouterGroup) {
 
 	ctx.GET("/dishes", handler.GetAllDishes)
 	ctx.POST("/order", handler.PlaceOrder)
+	ctx.GET("/order/:id", handler.GetOrderTimer)
 
 }

@@ -1,15 +1,18 @@
 package rest
 
 import (
+	"net/http"
 	"strings"
+	"time"
 	"github.com/gin-gonic/gin"
 	"moonwalk/internal/middleware"
 	"moonwalk/internal/api/rest/route"
 	log "github.com/Thanga-tamil/logger_lib"
 )
 
-// start and serve http server with gin lib 
-func Serve(ADDR, serverMode string) {
+// Serve starts and returns the HTTP server (and an error channel) so the caller
+// can either block on server failures or gracefully shut it down on signals.
+func Serve(ADDR, serverMode string) (*http.Server, <-chan error) {
 
 	setGinMode(serverMode)
 
@@ -17,6 +20,7 @@ func Serve(ADDR, serverMode string) {
 
 	// Attach middlewares to GIN 
 	serve.Use(middleware.LoggerChain())
+	serve.Use(gin.Recovery())
 
 	v1Group := serve.Group("/api/v1")
 
@@ -24,7 +28,22 @@ func Serve(ADDR, serverMode string) {
 
 	log.Infox("Application started successfully. Serving HTTP request response @ '", ADDR + "'")
 
-	serve.Run(ADDR) 
+	httpServer := &http.Server{
+		Addr:         ADDR,
+		Handler:      serve,
+		ReadTimeout:  15 * time.Second,
+		WriteTimeout: 15 * time.Second,
+	}
+
+	errChan := make(chan error, 1)
+	go func() {
+		if err := httpServer.ListenAndServe(); err != nil && err != http.ErrServerClosed {
+			errChan <- err
+		}
+		close(errChan)
+	}()
+
+	return httpServer, errChan
 }
 
 func setGinMode(env string) {

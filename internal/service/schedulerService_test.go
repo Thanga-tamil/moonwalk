@@ -15,7 +15,7 @@ func TestSchedulerFifoAssignment(t *testing.T) {
 		{Id: 4, Type: "SERVER", Status: IDLE},
 	}
 
-	order := scheduler(dish, &resources)
+	order := scheduler(dish, &resources, 0)
 
 	if order.Alg != FIFO {
 		t.Fatalf("expected FIFO algorithm, got %q", order.Alg)
@@ -40,7 +40,7 @@ func TestSchedulerFifoNoIdleServerQueues(t *testing.T) {
 		{Id: 4, Type: "SERVER", Status: BUSY},
 	}
 
-	order := scheduler(dish, &resources)
+	order := scheduler(dish, &resources, 0)
 
 	if order.Alg != FIFO {
 		t.Fatalf("expected FIFO algorithm, got %q", order.Alg)
@@ -63,7 +63,7 @@ func TestSchedulerResourceAwareAssignment(t *testing.T) {
 	}
 
 	before := time.Now()
-	order := scheduler(dish, &resources)
+	order := scheduler(dish, &resources, 0)
 	after := time.Now()
 
 	if order.Alg != RES_AWARE {
@@ -87,7 +87,7 @@ func TestSchedulerResourceAwareNoIdleChefQueues(t *testing.T) {
 		{Id: 4, Type: "SERVER", Status: IDLE},
 	}
 
-	order := scheduler(dish, &resources)
+	order := scheduler(dish, &resources, 0)
 
 	if order.Alg != RES_AWARE {
 		t.Fatalf("expected RESOURCE AWARE algorithm, got %q", order.Alg)
@@ -106,11 +106,41 @@ func TestFifoScheduleEtaCalculation(t *testing.T) {
 		{Id: 3, Type: "SERVER", Status: IDLE},
 	}
 
-	order := fifoSchedule(dish, &resources)
+	order := fifoSchedule(dish, &resources, 0)
 
 	expectedEta := order.CreatedAt.Add(FIFO_ETA_MINUTES * time.Minute)
 	if order.Eta.Before(expectedEta.Add(-time.Minute)) || order.Eta.After(expectedEta.Add(time.Minute)) {
 		t.Fatalf("expected FIFO ETA ~now+5min, got %v", order.Eta)
+	}
+}
+
+func TestFifoScheduleBacklogEta(t *testing.T) {
+	dish := pkg.Dish{Id: 5, PreCooked: true}
+	resources := []pkg.Resources{
+		{Id: 3, Type: "SERVER", Status: IDLE},
+	}
+	backlogMinutes := 3 * FIFO_ETA_MINUTES // 3 pre-cooked orders already queued
+
+	order := fifoSchedule(dish, &resources, backlogMinutes)
+
+	expectedEta := order.CreatedAt.Add(time.Duration(backlogMinutes+FIFO_ETA_MINUTES) * time.Minute)
+	if order.Eta.Before(expectedEta.Add(-time.Minute)) || order.Eta.After(expectedEta.Add(time.Minute)) {
+		t.Fatalf("expected FIFO ETA ~now+%dmin, got %v", backlogMinutes+FIFO_ETA_MINUTES, order.Eta)
+	}
+}
+
+func TestResourceAwareBacklogEta(t *testing.T) {
+	dish := pkg.Dish{Id: 6, PreCooked: false, PrepTime: 20}
+	resources := []pkg.Resources{
+		{Id: 1, Type: "CHEF", Status: IDLE},
+	}
+	backlogMinutes := 45 // 45 minutes of chef work already queued
+
+	order := resourceAwareSchedule(dish, &resources, backlogMinutes)
+
+	expectedEta := order.CreatedAt.Add(time.Duration(backlogMinutes+20) * time.Minute)
+	if order.Eta.Before(expectedEta.Add(-time.Minute)) || order.Eta.After(expectedEta.Add(time.Minute)) {
+		t.Fatalf("expected RESOURCE AWARE ETA ~now+%dmin, got %v", backlogMinutes+20, order.Eta)
 	}
 }
 

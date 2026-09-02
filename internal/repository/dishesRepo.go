@@ -12,7 +12,7 @@ func GetAllDishes(page, size int) ([]pkg.Dish, error) {
 	var dishes []pkg.Dish
 
 	err := app.DB.Table("dishes").
-				  Select(`id, dish, price, (prep_time || ' minutes') AS prep_time, ` +
+				  Select(`id, dish, price, prep_time, ` +
 				  		 `is_available, created_at`).
 				  Limit(size).Offset(offset).
 				  Scan(&dishes).

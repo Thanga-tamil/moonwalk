@@ -79,16 +79,26 @@ func PlaceOrder(ctx *gin.Context, data *pkg.PlaceOrderDto) {
 		WriteErr(ctx, err.Error()); return
 	}
 
-	order := scheduler(dish, resources)
+	backlogMinutes, err := backlogFor(dish)
+	if err != nil {
+		log.Error("Error while computing backlog:", err.Error())
+		WriteErr(ctx, err.Error()); return
+	}
+
+	order := scheduler(dish, resources, backlogMinutes)
 
 	if err := repository.Save(&order); err != nil {
 		WriteErr(ctx, err.Error()); return
 	}
 
+	// persist the audit trail for the order creation step
+	recordExecution(&order)
+
 	if order.ResourceId > 0 {
 		order.Status = "PREPARING"
 		repository.UpdateOrderStatus(order.OrderId, order.Status)
 		repository.UpdateResourceStatus(order.ResourceId, BUSY, order.OrderId)
+		recordExecution(&order)
 	}
 
 	ctx.JSON(http.StatusOK, pkg.Success(200, "Order placed successfully", order, 0, 1))

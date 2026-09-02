@@ -35,3 +35,14 @@ func PlaceOrder(ctx *gin.Context) {
 
 	service.PlaceOrder(ctx, data)
 }
+
+func GetOrderTimer(ctx *gin.Context) {
+	orderId := ctx.Param("id")
+
+	if orderId == "" {
+		service.WriteErr(ctx, "order id must not be empty")
+		return
+	}
+
+	service.GetOrderTimer(ctx, orderId)
+}

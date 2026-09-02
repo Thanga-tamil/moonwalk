@@ -55,7 +55,7 @@ func setupTestDB(t *testing.T) {
 		id INTEGER PRIMARY KEY AUTOINCREMENT,
 		order_id varchar(199) NOT NULL DEFAULT '',
 		dish_id INT NOT NULL DEFAULT 0,
-		chef varchar(199) UNIQUE NOT NULL DEFAULT '',
+		chef varchar(199) NOT NULL DEFAULT '',
 		status VARCHAR(20) NOT NULL DEFAULT 'PENDING',
 		eta DATETIME,
 		alg varchar(199) NOT NULL DEFAULT 'FIFO',
@@ -65,6 +65,19 @@ func setupTestDB(t *testing.T) {
 		UNIQUE(order_id)
 	)`).Error; err != nil {
 		t.Fatalf("failed to create orders table: %v", err)
+	}
+
+	if err := db.Exec(`CREATE TABLE order_executions (
+		id INTEGER PRIMARY KEY AUTOINCREMENT,
+		order_id varchar(199) NOT NULL DEFAULT '',
+		status VARCHAR(20) NOT NULL DEFAULT '',
+		algorithm varchar(199) NOT NULL DEFAULT '',
+		time_estimated INTEGER NOT NULL DEFAULT 0,
+		time_elapsed INTEGER NOT NULL DEFAULT 0,
+		resource_id INTEGER NOT NULL DEFAULT 0,
+		created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
+	)`).Error; err != nil {
+		t.Fatalf("failed to create order_executions table: %v", err)
 	}
 
 	app.DB = db
@@ -103,11 +116,6 @@ func seedOrder(t *testing.T, orderId string, dishId, resourceId int, status stri
 	}
 	if err := app.DB.Table("orders").Create(o).Error; err != nil {
 		t.Fatalf("failed to seed order: %v", err)
-	}
-	// the real schema has a UNIQUE chef column; give each order a distinct
-	// value so the INSERT does not violate the constraint
-	if err := app.DB.Table("orders").Where("order_id = ?", orderId).Update("chef", orderId).Error; err != nil {
-		t.Fatalf("failed to set chef on order: %v", err)
 	}
 }
 
