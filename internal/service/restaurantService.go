@@ -3,12 +3,11 @@ package service
 import (
 	"errors"
 	"net/http"
-
-	log "github.com/Thanga-tamil/logger_lib"
 	"github.com/gin-gonic/gin"
+	log "github.com/Thanga-tamil/logger_lib"
 
-	"moonwalk/internal/repository"
 	"moonwalk/pkg"
+	"moonwalk/internal/repository"
 )
 
 func GetAllDishes(ctx *gin.Context, page, size int) {
@@ -80,13 +79,8 @@ func PlaceOrder(ctx *gin.Context, data *pkg.PlaceOrderDto) {
 		WriteErr(ctx, err.Error()); return
 	}
 
-	scheduler(dish, resources)
+	order := scheduler(dish, resources)
 
-	// order := pkg.Order{ OrderId: utils.GetRandomUUID(), 
-	// 					DishId: data.DishId, 
-	// 					Chef: dish.,
-	// 					CreatedAt: time.Now() }
-
-	// repository.Save(&order)
+	repository.Save(&order)
 }
 

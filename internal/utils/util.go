@@ -1,9 +1,12 @@
 package utils
 
 import (
-	"fmt"
 	"errors"
+	"fmt"
+	"moonwalk/pkg"
 	"strconv"
+	"strings"
+
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 )
@@ -53,18 +56,23 @@ func Pagination(ctx *gin.Context) (int, int, error) {
 }
 
 func GetRandomUUID() string {
-	return uuid.New().String()
+	uuid := uuid.New().String()
+	fmt.Println("uuid:", uuid)
+	return uuid
 }
 
-func Filter[T any](items []T, fn func(T) bool) []T {
-    result := make([]T, 0)
+func Filter(items []pkg.Resources) ([]pkg.Resources, []pkg.Resources) {
+	chefs := make([]pkg.Resources, 0)
+	servers := make([]pkg.Resources, 0)
 
-    for _, item := range items {
-        if fn(item) {
-            result = append(result, item)
-        }
-    }
+	for _, item := range items {
+		if strings.ToLower(item.Type) == "chef" {
+			chefs = append(chefs, item)
+		} else {
+			servers = append(servers, item)
+		}
+	}
 
-    return result
+	return chefs, servers
 }
 
