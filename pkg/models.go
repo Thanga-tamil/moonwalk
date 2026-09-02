@@ -39,9 +39,9 @@ type Resources struct {
 	Id             int       `gorm:"column:id" json:"id"`
 	Type           string    `gorm:"column:type" json:"type"`
 	CurrentOrderID string    `gorm:"column:current_order_id" json:"current_order_id"`
-	Status     	   string    `gorm:"column:Status" json:"chef_status"`
+	Status     	   string    `gorm:"column:status" json:"chef_status"`
 	OrderStatus    string    `gorm:"column:order_status" json:"order_status"`
 	CreatedAt      time.Time `gorm:"column:created_at" json:"created_at"`
 	UpdatedAt      time.Time `gorm:"column:updated_at" json:"updated_at"`
-	Name           string    `gorm:"column:chef" json:"name"`
+	Name           string    `gorm:"column:name" json:"name"`
 }

@@ -6,6 +6,7 @@ import (
 	"moonwalk/internal/utils"
 	"moonwalk/internal/config"
 	"moonwalk/internal/api/rest"
+	"moonwalk/internal/service"
 
 	log "github.com/Thanga-tamil/logger_lib"
 )
@@ -28,6 +29,10 @@ func main() {
 		// the service and start debugging 
 		panic(err)
 	}
+
+	// start the background cron service handling order
+	// completion and pending order re-scheduling
+	service.StartCronService()
 
 	rest.Serve(utils.ServerAddr, conf.ServerMode)
 }
