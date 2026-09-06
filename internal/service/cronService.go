@@ -1,9 +1,10 @@
 package service
 
 import (
+	"moonwalk/internal/repository"
 	"sync"
 	"time"
-	"moonwalk/internal/repository"
+
 	log "github.com/Thanga-tamil/logger_lib"
 )
 
@@ -41,9 +42,12 @@ func processCompletedOrders() {
 			continue
 		}
 		if o.ResourceId > 0 {
-			if err := repository.UpdateResourceStatus(o.ResourceId, IDLE, ""); err != nil {
+			currentOrderId := "" // empty the resource's current order id since the order is now served
+			if err := repository.UpdateResourceStatus(o.ResourceId, IDLE, currentOrderId); err != nil {
 				log.Error("Cron: error freeing resource:", err.Error())
 			}
+		} else {
+			log.Warn("Cron: order", o.OrderId, "has no assigned resource, cannot free resource")
 		}
 
 		// audit the transition to SERVED
@@ -53,7 +57,9 @@ func processCompletedOrders() {
 }
 
 func processPendingOrders() {
+	log.Info("processPendingOrders")
 	orders, err := repository.GetPendingOrders()
+	log.Info("pending orders: ", orders)
 	if err != nil {
 		log.Error("Cron: error fetching pending orders:", err.Error())
 		return
@@ -63,12 +69,14 @@ func processPendingOrders() {
 	}
 
 	resources, err := repository.GetResources()
+	log.Info("available resources: ", resources)
 	if err != nil {
 		log.Error("Cron: error fetching resources:", err.Error())
 		return
 	}
 
 	for _, o := range orders {
+		log.Debug("Cron: processing pending order", o.OrderId)
 		dish, err := repository.GetDish(o.DishId)
 		if err != nil {
 			log.Error("Cron: error fetching dish:", err.Error())
