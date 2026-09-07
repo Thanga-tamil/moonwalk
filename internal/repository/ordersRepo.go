@@ -9,20 +9,14 @@ import (
 )
 
 func Save(o *pkg.Order) error {
-	if err := app.DB.Table("orders").Create(o).Error; err != nil {
-		log.Error(err.Error())
-		return err
-	}
-	return nil
+	return app.DB.Table("orders").Create(o).Error
 }
 
 func GetPendingOrders() ([]pkg.Order, error) {
 	var orders []pkg.Order
 
-	err := app.DB.Table("orders").
-		Where("status = ?", "PENDING").
-		Order("created_at ASC").
-		Find(&orders).Error
+	err := app.DB.Table("orders").Where("status = ?", "PENDING").
+		Order("created_at ASC").Find(&orders).Error
 
 	if err != nil {
 		log.Error(err.Error())
@@ -63,15 +57,18 @@ func GetPreparingOrdersPastETA() ([]pkg.Order, error) {
 }
 
 func UpdateOrderStatus(orderId, status string) error {
-	err := app.DB.Table("orders").
+	return app.DB.Table("orders").
 		Where("order_id = ?", orderId).
 		Update("status", status).Error
+}
 
-	if err != nil {
-		log.Error(err.Error())
-		return err
-	}
-	return nil
+func UpdateOrderStatusAndResourceId(orderId, status string, resourceId int) error {
+	return app.DB.Table("orders").
+		Where("order_id = ?", orderId).
+		Updates(map[string]interface{}{
+			"status":      status,
+			"resource_id": resourceId,
+		}).Error
 }
 
 // GetPendingBacklog returns the estimated queued work for orders still

@@ -57,7 +57,7 @@ func processCompletedOrders() {
 }
 
 func processPendingOrders() {
-	log.Info("processPendingOrders")
+	log.Info("process pending orders")
 	orders, err := repository.GetPendingOrders()
 	log.Info("pending orders: ", orders)
 	if err != nil {
@@ -89,19 +89,19 @@ func processPendingOrders() {
 			continue
 		}
 
-		assigned := scheduler(dish, resources, backlogMinutes)
-		if assigned.ResourceId > 0 {
-			log.Infox("Cron: assigning pending order", o.OrderId, "to resource", assigned.ResourceId)
-			if err := repository.UpdateOrderStatus(o.OrderId, "PREPARING"); err != nil {
+		order := scheduler(dish, resources, backlogMinutes)
+		if order.ResourceId > 0 {
+			log.Infox("Cron: assigning pending order", o.OrderId, "to resource", order.ResourceId)
+			if err := repository.UpdateOrderStatusAndResourceId(o.OrderId, "PREPARING", order.ResourceId); err != nil {
 				log.Error("Cron: error updating order status:", err.Error())
 				continue
 			}
-			if err := repository.UpdateResourceStatus(assigned.ResourceId, BUSY, o.OrderId); err != nil {
+			if err := repository.UpdateResourceStatus(order.ResourceId, BUSY, o.OrderId); err != nil {
 				log.Error("Cron: error updating resource status:", err.Error())
 				continue
 			}
 			for i, r := range *resources {
-				if r.Id == assigned.ResourceId {
+				if r.Id == order.ResourceId {
 					(*resources)[i].Status = BUSY
 					break
 				}
@@ -109,7 +109,7 @@ func processPendingOrders() {
 
 			// audit the transition to PREPARING
 			o.Status = "PREPARING"
-			o.ResourceId = assigned.ResourceId
+			o.ResourceId = order.ResourceId
 			recordExecution(&o)
 		}
 	}
