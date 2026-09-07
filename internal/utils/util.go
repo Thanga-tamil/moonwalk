@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"moonwalk/pkg"
 	"strconv"
-	"strings"
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
@@ -13,7 +12,7 @@ import (
 
 const (
 	ServerAddr = "0.0.0.0:8080"
-	LogFile = "moonwalk.log"
+	LogFile    = "moonwalk.log"
 	ConfigFile = "config.json"
 )
 
@@ -61,18 +60,14 @@ func GetRandomUUID() string {
 	return uuid
 }
 
-func Filter(items []pkg.Resources) ([]pkg.Resources, []pkg.Resources) {
-	chefs := make([]pkg.Resources, 0)
-	servers := make([]pkg.Resources, 0)
+func Filter(resources []pkg.Resources, filterType string) []pkg.Resources {
+	result := make([]pkg.Resources, 0)
 
-	for _, item := range items {
-		if strings.ToLower(item.Type) == "chef" {
-			chefs = append(chefs, item)
-		} else {
-			servers = append(servers, item)
+	for _, resource := range resources {
+		if resource.Type == filterType {
+			result = append(result, resource)
 		}
 	}
 
-	return chefs, servers
+	return result
 }
-

@@ -1,10 +1,11 @@
 package service
 
 import (
-	"time"
-	"moonwalk/pkg"
-	"moonwalk/internal/utils"
 	"moonwalk/internal/repository"
+	"moonwalk/internal/utils"
+	"moonwalk/pkg"
+	"time"
+
 	log "github.com/Thanga-tamil/logger_lib"
 )
 
@@ -33,11 +34,13 @@ func recordExecution(o *pkg.Order) {
 }
 
 const (
-	IDLE        = "IDLE"
-	BUSY        = "BUSY"
-	FIFO        = "FIFO"
-	RES_AWARE   = "RESOURCE AWARE"
+	IDLE             = "IDLE"
+	BUSY             = "BUSY"
+	FIFO             = "FIFO"
+	RES_AWARE        = "RESOURCE AWARE"
 	FIFO_ETA_MINUTES = 5
+	SERVER           = "SERVER"
+	CHEF             = "CHEF"
 )
 
 // schedulerStrategy holds the server-wide strategy loaded from config. It is
@@ -86,7 +89,7 @@ func scheduler(dish pkg.Dish, resources *[]pkg.Resources, backlogMinutes int) pk
 }
 
 func fifoSchedule(dish pkg.Dish, resources *[]pkg.Resources, backlogMinutes int) pkg.Order {
-	_, servers := utils.Filter(*resources)
+	servers := utils.Filter(*resources, SERVER)
 	eta := time.Now().Add(time.Duration(backlogMinutes+FIFO_ETA_MINUTES) * time.Minute)
 
 	for _, s := range servers {
@@ -101,7 +104,7 @@ func fifoSchedule(dish pkg.Dish, resources *[]pkg.Resources, backlogMinutes int)
 }
 
 func resourceAwareSchedule(dish pkg.Dish, resources *[]pkg.Resources, backlogMinutes int) pkg.Order {
-	chefs, _ := utils.Filter(*resources)
+	chefs := utils.Filter(*resources, CHEF)
 	eta := time.Now().Add(time.Duration(backlogMinutes+dish.PrepTime) * time.Minute)
 
 	for _, c := range chefs {
@@ -142,4 +145,3 @@ func backlogFor(dish pkg.Dish) (int, error) {
 	}
 	return resourceMinutes, nil
 }
-

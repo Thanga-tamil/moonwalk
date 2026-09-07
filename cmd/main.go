@@ -3,17 +3,16 @@ package main
 import (
 	"context"
 	"fmt"
+	"moonwalk/internal/api/rest"
+	"moonwalk/internal/app"
+	"moonwalk/internal/config"
+	"moonwalk/internal/service"
+	"moonwalk/internal/utils"
 	"net/http"
 	"os"
 	"os/signal"
 	"syscall"
 	"time"
-	"moonwalk/internal/app"
-	"moonwalk/internal/utils"
-	"moonwalk/internal/config"
-	"moonwalk/internal/api/rest"
-	"moonwalk/internal/service"
-	"moonwalk/pkg"
 
 	log "github.com/Thanga-tamil/logger_lib"
 )
@@ -44,13 +43,13 @@ func main() {
 	// completion and pending order re-scheduling
 	service.StartCronService()
 
-	serveAsync(utils.ServerAddr, conf.ServerMode, conf)
+	serveAsync(utils.ServerAddr, conf.ServerMode)
 }
 
 // serveAsync starts the HTTP server in the background and blocks until either
 // the server fails or an OS shutdown signal (SIGINT/SIGTERM) is received, in
 // which case the server and database are shut down gracefully.
-func serveAsync(addr, serverMode string, conf *pkg.ServiceConfig) {
+func serveAsync(addr, serverMode string) {
 	server, errChan := rest.Serve(addr, serverMode)
 
 	quit := make(chan os.Signal, 1)

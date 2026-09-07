@@ -8,7 +8,7 @@ import (
 	log "github.com/Thanga-tamil/logger_lib"
 )
 
-const CRON_INTERVAL = 10 * time.Second
+const CRON_INTERVAL = 30 * time.Second
 
 var cronMu sync.Mutex
 
