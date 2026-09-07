@@ -3,11 +3,12 @@ package service
 import (
 	"net/http"
 	"time"
-	"github.com/gin-gonic/gin"
-	log "github.com/Thanga-tamil/logger_lib"
 
-	"moonwalk/pkg"
+	log "github.com/Thanga-tamil/logger_lib"
+	"github.com/gin-gonic/gin"
+
 	"moonwalk/internal/repository"
+	"moonwalk/pkg"
 )
 
 // GetOrderTimer returns the countdown timer payload for an order. It computes
@@ -50,5 +51,11 @@ func GetOrderTimer(ctx *gin.Context, orderId string) {
 		TimeRemaining: timeRemaining,
 	}
 
-	ctx.JSON(http.StatusOK, pkg.Success(200, "Order countdown retrieved successfully", timer, 0, 1))
+	response := map[string]interface{}{
+		"statusCode": 200,
+		"message":    "Order countdown retrieved successfully",
+		"data":       timer,
+	}
+
+	ctx.JSON(http.StatusOK, response)
 }

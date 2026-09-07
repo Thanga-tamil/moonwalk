@@ -3,17 +3,18 @@ package service
 import (
 	"errors"
 	"net/http"
-	"github.com/gin-gonic/gin"
-	log "github.com/Thanga-tamil/logger_lib"
 
-	"moonwalk/pkg"
+	log "github.com/Thanga-tamil/logger_lib"
+	"github.com/gin-gonic/gin"
+
 	"moonwalk/internal/repository"
+	"moonwalk/pkg"
 )
 
 func GetAllDishes(ctx *gin.Context, page, size int) {
 
-	// since the pagination handled in query itself, we can't get the 
-	// totalRecords from the retrieved dataset, so handle and return no 
+	// since the pagination handled in query itself, we can't get the
+	// totalRecords from the retrieved dataset, so handle and return no
 	// records case before processing the data
 	totalRecords, err := repository.TotalRecordsOfDishes()
 	if err != nil {
@@ -25,11 +26,11 @@ func GetAllDishes(ctx *gin.Context, page, size int) {
 	log.Debug("^GetAllDishes totalRecords:", totalRecords)
 	if totalRecords == 0 {
 		ctx.JSON(http.StatusNoContent, "")
-		return 
+		return
 	}
 
 	// Retrieve available dishes from db.
-	// let the query take care of pagination using limit & offset 
+	// let the query take care of pagination using limit & offset
 	dishes, err := repository.GetAllDishes(page, size)
 	if err != nil {
 		log.Error("Error while retriving All Dishes from schema:", err.Error())
@@ -68,27 +69,32 @@ func PlaceOrder(ctx *gin.Context, data *pkg.PlaceOrderDto) {
 
 	if err != nil {
 		log.Error("Error while parsing place order input:", err.Error())
-		WriteErr(ctx, err.Error()); return
+		WriteErr(ctx, err.Error())
+		return
 	} else if dish.Dish == "" {
-		WriteErr(ctx, "dish not found for the input dishId"); return
+		WriteErr(ctx, "dish not found for the input dishId")
+		return
 	}
 
 	resources, err := repository.GetResources()
 
-	if err != nil { 
-		WriteErr(ctx, err.Error()); return
+	if err != nil {
+		WriteErr(ctx, err.Error())
+		return
 	}
 
 	backlogMinutes, err := backlogFor(dish)
 	if err != nil {
 		log.Error("Error while computing backlog:", err.Error())
-		WriteErr(ctx, err.Error()); return
+		WriteErr(ctx, err.Error())
+		return
 	}
 
 	order := scheduler(dish, resources, backlogMinutes)
 
 	if err := repository.Save(&order); err != nil {
-		WriteErr(ctx, err.Error()); return
+		WriteErr(ctx, err.Error())
+		return
 	}
 
 	// persist the audit trail for the order creation step
@@ -101,6 +107,11 @@ func PlaceOrder(ctx *gin.Context, data *pkg.PlaceOrderDto) {
 		recordExecution(&order)
 	}
 
-	ctx.JSON(http.StatusOK, pkg.Success(200, "Order placed successfully", order, 0, 1))
-}
+	response := map[string]interface{}{
+		"statusCode": 200,
+		"message":    "Order placed successfully",
+		"data":       order,
+	}
 
+	ctx.JSON(http.StatusOK, response)
+}

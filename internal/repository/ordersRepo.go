@@ -1,9 +1,9 @@
 package repository
 
 import (
-	"time"
 	"moonwalk/internal/app"
 	"moonwalk/pkg"
+	"time"
 
 	log "github.com/Thanga-tamil/logger_lib"
 )
@@ -62,7 +62,7 @@ func GetPreparingOrdersPastETA() ([]pkg.Order, error) {
 	return orders, nil
 }
 
-func UpdateOrderStatus(orderId string, status string) error {
+func UpdateOrderStatus(orderId, status string) error {
 	err := app.DB.Table("orders").
 		Where("order_id = ?", orderId).
 		Update("status", status).Error
@@ -82,7 +82,7 @@ func UpdateOrderStatus(orderId string, status string) error {
 //
 // This lets the scheduler produce a backlog-aware ETA instead of assuming a
 // free kitchen, per the "current backlog and resources" requirement.
-func GetPendingBacklog() (fifoCount int, resourceMinutes int, err error) {
+func GetPendingBacklog() (fifoCount, resourceMinutes int, err error) {
 	var fifo int64
 	err = app.DB.Table("orders AS o").
 		Joins("JOIN dishes d ON o.dish_id = d.id").
@@ -106,4 +106,3 @@ func GetPendingBacklog() (fifoCount int, resourceMinutes int, err error) {
 
 	return int(fifo), int(minutes), nil
 }
-
