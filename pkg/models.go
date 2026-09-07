@@ -12,6 +12,7 @@ type ServiceConfig struct {
 	// which picks per dish (FIFO for pre-cooked, resource-aware otherwise).
 	SchedulerStrategy string `json:"schedulerStrategy"`
 	// Database pool tuning for long-running server operation.
+	DbMaxIdleConns    int `json:"dbMaxIdleConns"`
 	DbMaxOpenConns    int `json:"dbMaxOpenConns"`
 	DbConnMaxLifetime int `json:"dbConnMaxLifetime"` // seconds
 }

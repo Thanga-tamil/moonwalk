@@ -47,7 +47,7 @@ func processCompletedOrders() {
 				log.Error("Cron: error freeing resource:", err.Error())
 			}
 		} else {
-			log.Warn("Cron: order", o.OrderId, "has no assigned resource, cannot free resource")
+			log.Warn("Cron: order ", o.OrderId, " has no assigned resource, cannot free resource")
 		}
 
 		// audit the transition to SERVED

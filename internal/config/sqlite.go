@@ -2,16 +2,17 @@ package config
 
 import (
 	"time"
+
+	log "github.com/Thanga-tamil/logger_lib"
 	"gorm.io/driver/sqlite"
 	"gorm.io/gorm"
-	log "github.com/Thanga-tamil/logger_lib"
 )
 
 // NewSqlite opens a connection to the SQLite database with a tuned connection
 // pool so the server can run for a long time without leaking connections.
 // maxOpenConns of 0 keeps the driver default; connMaxLifetime of 0 leaves it
 // unlimited (SQLite has a single writer, but the pool still bounds open FDs).
-func NewSqlite(driverName, dataSourceName string, maxOpenConns int, connMaxLifetime int) (*gorm.DB, error) {
+func NewSqlite(driverName, dataSourceName string, maxIdleConns, maxOpenConns, connMaxLifetime int) (*gorm.DB, error) {
 	log.Infof("Initialize sqlite db")
 
 	db, err := gorm.Open(sqlite.Open(dataSourceName), &gorm.Config{})
@@ -25,9 +26,10 @@ func NewSqlite(driverName, dataSourceName string, maxOpenConns int, connMaxLifet
 	}
 
 	if maxOpenConns > 0 {
+		sqlDB.SetMaxIdleConns(maxIdleConns)
 		sqlDB.SetMaxOpenConns(maxOpenConns)
-		sqlDB.SetMaxIdleConns(maxOpenConns)
 	}
+
 	if connMaxLifetime > 0 {
 		sqlDB.SetConnMaxLifetime(time.Duration(connMaxLifetime) * time.Second)
 	}

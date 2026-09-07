@@ -1,11 +1,11 @@
 package app
 
 import (
-	"moonwalk/pkg"
 	"moonwalk/internal/config"
+	"moonwalk/pkg"
 
-	"gorm.io/gorm"
 	log "github.com/Thanga-tamil/logger_lib"
+	"gorm.io/gorm"
 )
 
 var DB *gorm.DB
@@ -16,7 +16,7 @@ func Start(conf *pkg.ServiceConfig) error {
 	var err error
 
 	DB, err = config.NewSqlite(conf.SqlDriverName, conf.SqlDataSourceName,
-		conf.DbMaxOpenConns, conf.DbConnMaxLifetime)
+		conf.DbMaxIdleConns, conf.DbMaxOpenConns, conf.DbConnMaxLifetime)
 	if err != nil {
 		return err
 	}
