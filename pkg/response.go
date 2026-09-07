@@ -1,11 +1,12 @@
 package pkg
 
-func Success(statusCode, msg, data, totalRecords, count any) any {
+func Success(statusCode, msg, data, totalRecords, count, totalPages any) any {
 	return map[string]any{
 		"data":         data,
 		"message":      msg,
 		"statusCode":   statusCode,
 		"count":        count,
+		"totalPages":   totalPages,
 		"totalRecords": totalRecords,
 	}
 }

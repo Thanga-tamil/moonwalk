@@ -3,6 +3,7 @@ package service
 import (
 	"errors"
 	"net/http"
+	"strconv"
 
 	log "github.com/Thanga-tamil/logger_lib"
 	"github.com/gin-gonic/gin"
@@ -38,7 +39,15 @@ func GetAllDishes(ctx *gin.Context, page, size int) {
 		return
 	}
 
-	response := pkg.Success(200, "Data retrieved successfully", dishes, totalRecords, len(dishes))
+	totalPages := totalRecords / int64(size)
+	if totalRecords%int64(size) > 0 {
+		totalPages++
+	}
+	if int64(page) > totalPages {
+		WriteErr(ctx, "Page limit exceeded, Total pages available: "+strconv.FormatInt(totalPages, 10))
+		return
+	}
+	response := pkg.Success(200, "Data retrieved successfully", dishes, totalRecords, len(dishes), totalPages)
 
 	log.Debugf("^GetAllDishes response: %#v", response)
 
