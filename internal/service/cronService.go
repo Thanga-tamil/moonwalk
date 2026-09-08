@@ -100,13 +100,6 @@ func processPendingOrders() {
 				log.Error("Cron: error updating resource status:", err.Error())
 				continue
 			}
-			for i, r := range *resources {
-				if r.Id == order.ResourceId {
-					(*resources)[i].Status = BUSY
-					break
-				}
-			}
-
 			// audit the transition to PREPARING
 			o.Status = "PREPARING"
 			o.ResourceId = order.ResourceId
