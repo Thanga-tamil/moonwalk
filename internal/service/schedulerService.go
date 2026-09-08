@@ -38,7 +38,7 @@ const (
 	BUSY             = "BUSY"
 	FIFO             = "FIFO"
 	RES_AWARE        = "RESOURCE AWARE"
-	FIFO_ETA_MINUTES = 5
+	FIFO_ETA_MINUTES = 1
 	SERVER           = "SERVER"
 	CHEF             = "CHEF"
 )
@@ -105,7 +105,10 @@ func fifoSchedule(dish pkg.Dish, resources *[]pkg.Resources, backlogMinutes int)
 
 func resourceAwareSchedule(dish pkg.Dish, resources *[]pkg.Resources, backlogMinutes int) pkg.Order {
 	chefs := utils.Filter(*resources, CHEF)
-	eta := time.Now().Add(time.Duration(backlogMinutes+dish.PrepTime) * time.Minute)
+	// dev in progress
+	// Each RESOURCE AWARE order should be served by a server after compilation of cooking by a chef.
+	// So, the ETA should be calculated as the sum of backlogMinutes + dish.PrepTime + FIFO_ETA_MINUTES
+	eta := time.Now().Add(time.Duration(backlogMinutes+dish.PrepTime) * time.Minute) // + FIFO_ETA_MINUTES
 
 	for _, c := range chefs {
 		if c.Status == IDLE {

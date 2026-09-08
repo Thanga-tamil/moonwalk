@@ -51,13 +51,14 @@ type Order struct {
 }
 
 type Resources struct {
-	Id             int       `gorm:"column:id" json:"id"`
-	Type           string    `gorm:"column:type" json:"type"`
-	CurrentOrderID string    `gorm:"column:current_order_id" json:"current_order_id"`
-	Status         string    `gorm:"column:status" json:"chef_status"`
-	CreatedAt      time.Time `gorm:"column:created_at" json:"created_at"`
-	UpdatedAt      time.Time `gorm:"column:updated_at" json:"updated_at"`
-	Name           string    `gorm:"column:name" json:"name"`
+	Id                int       `gorm:"column:id" json:"id"`
+	Type              string    `gorm:"column:type" json:"type"`
+	CurrentOrderID    string    `gorm:"column:current_order_id" json:"current_order_id"`
+	Status            string    `gorm:"column:status" json:"chef_status"`
+	CreatedAt         time.Time `gorm:"column:created_at" json:"created_at"`
+	UpdatedAt         time.Time `gorm:"column:updated_at" json:"updated_at"`
+	Name              string    `gorm:"column:name" json:"name"`
+	OrderHandlingType bool      `json:"order_handling_type"`
 }
 
 // OrderExecution records a single status transition for an order. It forms the
