@@ -79,3 +79,13 @@ func PrettyPrint(title string, data interface{}) {
 	}
 	log.Infof("%s:\n%s", title, data)
 }
+
+func SortOrdersByCreatedAt(orders *[]pkg.Order) {
+	for i := 0; i < len(*orders)-1; i++ {
+		for j := 0; j < len(*orders)-i-1; j++ {
+			if (*orders)[j].CreatedAt.After((*orders)[j+1].CreatedAt) {
+				(*orders)[j], (*orders)[j+1] = (*orders)[j+1], (*orders)[j]
+			}
+		}
+	}
+}

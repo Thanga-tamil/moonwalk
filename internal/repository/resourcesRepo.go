@@ -17,14 +17,14 @@ func GetResources() (*[]pkg.Resources, error) {
 	return &resources, nil
 }
 
-func GetSuppliers() (*[]pkg.Resources, error) {
+func GetSuppliers() ([]pkg.Resources, error) {
 	var resources []pkg.Resources
 
 	if err := app.DB.Table("resources").Where("order_handling_type = ?", true).Find(&resources).Error; err != nil {
 		return nil, err
 	}
 
-	return &resources, nil
+	return resources, nil
 }
 
 func UpdateResourceStatus(tx *gorm.DB, resourceId int, status string, currentOrderId string) error {

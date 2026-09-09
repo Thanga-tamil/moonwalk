@@ -27,23 +27,6 @@ func GetPendingOrders() ([]pkg.Order, error) {
 	return orders, nil
 }
 
-func GetResourceAwareOrders(status string) (pkg.Order, error) {
-	var order pkg.Order
-
-	err := app.DB.Table("orders INDEXED BY i_status_alg_created_at").
-		Where("status = ? AND alg = ?", status, "RESOURCE AWARE").
-		Order("created_at ASC limit 1").
-		Find(&order).
-		Error
-
-	if err != nil {
-		log.Error(err.Error())
-		return pkg.Order{}, err
-	}
-
-	return order, nil
-}
-
 func GetOrder(orderId string) (pkg.Order, error) {
 	var order pkg.Order
 
@@ -127,10 +110,10 @@ func GetPendingBacklog() (fifoCount, resourceMinutes int, err error) {
 }
 
 // update orders to ready based on ETA and retrieve the updated records.
-func UpdateResourceAwareOrdersToReady(status string, eta time.Time) ([]pkg.Order, error) {
+func UpdateResourceAwareOrdersToReady(tx *gorm.DB, status string, eta time.Time) ([]pkg.Order, error) {
 	var orders []pkg.Order
 
-	if err := app.DB.Table("orders").
+	if err := tx.Table("orders").
 		Where("status = ? AND eta <= ?", "PREPARING", eta).
 		Find(&orders).Error; err != nil {
 		return nil, err
@@ -145,7 +128,7 @@ func UpdateResourceAwareOrdersToReady(status string, eta time.Time) ([]pkg.Order
 		ids = append(ids, order.OrderId)
 	}
 
-	if err := app.DB.Table("orders").
+	if err := tx.Table("orders").
 		Where("order_id IN ?", ids).
 		Updates(map[string]interface{}{
 			"status": status,
