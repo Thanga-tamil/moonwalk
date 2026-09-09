@@ -136,6 +136,24 @@ func UpdateResourceAwareOrdersToReady(tx *gorm.DB, status string, eta time.Time)
 		return nil, err
 	}
 
+	if err := tx.Table("orders").
+		Where("status = ?", status).
+		Find(&orders).Error; err != nil {
+		return nil, err
+	}
+
+	return orders, nil
+}
+
+func FetchOrdersByStatusReady(tx *gorm.DB, status string, eta time.Time) ([]pkg.Order, error) {
+	var orders []pkg.Order
+
+	if err := tx.Table("orders").
+		Where("status = ?", status).
+		Find(&orders).Error; err != nil {
+		return nil, err
+	}
+
 	return orders, nil
 }
 

@@ -41,7 +41,8 @@ func main() {
 
 	// start the background cron service handling order
 	// completion and pending order re-scheduling
-	service.StartCronService()
+	cronInterval := time.Duration(conf.CronInterval) * time.Second
+	service.StartCronService(cronInterval)
 
 	serveAsync(utils.ServerAddr, conf.ServerMode)
 }

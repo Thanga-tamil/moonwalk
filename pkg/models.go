@@ -7,6 +7,7 @@ type ServiceConfig struct {
 	SqlDataSourceName string `json:"sqlDataSourceName"`
 	LogLevel          string `json:"logLevel"`
 	ServerMode        string `json:"serverMode"`
+	CronInterval      int    `json:"cronInterval"` // seconds
 	// SchedulerStrategy selects which scheduling algorithm is used server-wide.
 	// Supported values: "auto", "fifo", "resource_aware". Defaults to "auto"
 	// which picks per dish (FIFO for pre-cooked, resource-aware otherwise).

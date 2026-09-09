@@ -16,15 +16,14 @@ import (
 )
 
 const (
-	CRON_INTERVAL = 5 * time.Second
-	READY         = "READY"
+	READY = "READY"
 )
 
 var cronMu sync.Mutex
 
-func StartCronService() {
-	log.Infox("Starting cron service with interval:", CRON_INTERVAL)
-	ticker := time.NewTicker(CRON_INTERVAL)
+func StartCronService(cronInterval time.Duration) {
+	log.Infox("Starting cron service with interval: ", cronInterval)
+	ticker := time.NewTicker(cronInterval)
 	var wg sync.WaitGroup
 	go func() {
 		for range ticker.C {
@@ -62,19 +61,26 @@ func processResourceAwareOrders() {
 	// update the status to 'READY'
 	eta := time.Now().Add(time.Minute)
 	err := app.DB.Transaction(func(tx *gorm.DB) error {
-		orders, err := orderRepo.UpdateResourceAwareOrdersToReady(tx, READY, eta)
-		log.Infof("Cron: %d resource aware orders updated to READY", len(orders))
+
+		updatedOrders, err := orderRepo.UpdateResourceAwareOrdersToReady(tx, READY, eta)
+		log.Infof("Cron: %d resource aware orders updated to READY", len(updatedOrders))
 		if err != nil {
 			log.Error("Cron: error updating resource aware orders to READY:", err.Error())
+			return err
+		}
+		// audit the transition to READY
+		for _, o := range updatedOrders {
+			o.Status = READY
+			recordExecution(tx, &o)
+		}
+
+		orders, err := orderRepo.FetchOrdersByStatusReady(tx, READY, eta)
+		if err != nil {
+			log.Error("Cron: error fetching resource aware orders:", err.Error())
 			return err
 		} else if len(orders) == 0 {
 			log.Info("Cron: no resource aware orders to process")
 			return nil
-		}
-		// audit the transition to READY
-		for _, o := range orders {
-			o.Status = READY
-			recordExecution(tx, &o)
 		}
 
 		utils.SortOrdersByCreatedAt(&orders)
