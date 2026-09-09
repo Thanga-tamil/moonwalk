@@ -26,7 +26,7 @@ func GetPendingOrders() ([]pkg.Order, error) {
 	return orders, nil
 }
 
-func GetResourceAwareOrders(status string) (*pkg.Order, error) {
+func GetResourceAwareOrders(status string) (pkg.Order, error) {
 	var order pkg.Order
 
 	err := app.DB.Table("orders").
@@ -37,10 +37,10 @@ func GetResourceAwareOrders(status string) (*pkg.Order, error) {
 
 	if err != nil {
 		log.Error(err.Error())
-		return nil, err
+		return pkg.Order{}, err
 	}
 
-	return &order, nil
+	return order, nil
 }
 
 func GetOrder(orderId string) (pkg.Order, error) {
@@ -145,7 +145,7 @@ func UpdateResourceAwareOrdersToReady(status string, eta time.Time) ([]pkg.Order
 	}
 
 	if err := app.DB.Table("orders").
-		Where("id IN ?", ids).
+		Where("order_id IN ?", ids).
 		Updates(map[string]interface{}{
 			"status": status,
 		}).Error; err != nil {
@@ -155,11 +155,10 @@ func UpdateResourceAwareOrdersToReady(status string, eta time.Time) ([]pkg.Order
 	return orders, nil
 }
 
-func UpdateResourceAwareOrdersStatusToServing(resource *pkg.Resources, orderId string) error {
+func UpdateResourceAwareOrdersStatusToServing(orderId string) error {
 	return app.DB.Table("orders").
 		Where("order_id = ?", orderId).
 		Updates(map[string]interface{}{
-			// "resource_id": resource.Id,
 			"status": "SERVING",
 		}).Error
 }
