@@ -30,7 +30,7 @@ func GetPendingOrders() ([]pkg.Order, error) {
 func GetResourceAwareOrders(status string) (pkg.Order, error) {
 	var order pkg.Order
 
-	err := app.DB.Table("orders").
+	err := app.DB.Table("orders INDEXED BY i_status_alg_created_at").
 		Where("status = ? AND alg = ?", status, "RESOURCE AWARE").
 		Order("created_at ASC limit 1").
 		Find(&order).
@@ -62,7 +62,7 @@ func GetOrder(orderId string) (pkg.Order, error) {
 func GetPreparingOrdersPastETA(tx *gorm.DB) ([]pkg.Order, error) {
 	var orders []pkg.Order
 
-	err := tx.Table("orders").
+	err := tx.Table("orders INDEXED BY i_status_eta").
 		Where("status in (?, ?) AND eta <= ?", "PROCESSING", "SERVING", time.Now()).
 		Find(&orders).Error
 

@@ -57,7 +57,7 @@ func UpdateChefStatusToIdle(tx *gorm.DB, status string, resourceId int) error {
 func FindResourceByOrderId(tx *gorm.DB, orderId string) int {
 	var resource pkg.Resources
 
-	if err := tx.Table("resources").Where("current_order_id = ?", orderId).First(&resource).Error; err != nil {
+	if err := tx.Table("resources INDEXED BY i_current_order_id").Where("current_order_id = ?", orderId).First(&resource).Error; err != nil {
 		return 0
 	}
 
