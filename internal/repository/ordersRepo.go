@@ -6,6 +6,7 @@ import (
 	"time"
 
 	log "github.com/Thanga-tamil/logger_lib"
+	"gorm.io/gorm"
 )
 
 func Save(o *pkg.Order) error {
@@ -58,10 +59,10 @@ func GetOrder(orderId string) (pkg.Order, error) {
 	return order, nil
 }
 
-func GetPreparingOrdersPastETA() ([]pkg.Order, error) {
+func GetPreparingOrdersPastETA(tx *gorm.DB) ([]pkg.Order, error) {
 	var orders []pkg.Order
 
-	err := app.DB.Table("orders").
+	err := tx.Table("orders").
 		Where("status in (?, ?) AND eta <= ?", "PROCESSING", "SERVING", time.Now()).
 		Find(&orders).Error
 
@@ -73,8 +74,8 @@ func GetPreparingOrdersPastETA() ([]pkg.Order, error) {
 	return orders, nil
 }
 
-func UpdateOrderStatus(orderId, status string, servedAt time.Time) error {
-	return app.DB.Table("orders").
+func UpdateOrderStatus(tx *gorm.DB, orderId, status string, servedAt time.Time) error {
+	return tx.Table("orders").
 		Where("order_id = ?", orderId).
 		Updates(map[string]interface{}{
 			"status":    status,
@@ -82,8 +83,8 @@ func UpdateOrderStatus(orderId, status string, servedAt time.Time) error {
 		}).Error
 }
 
-func UpdateOrderStatusAndResourceId(orderId, status string, resourceId int) error {
-	return app.DB.Table("orders").
+func UpdateOrderStatusAndResourceId(tx *gorm.DB, orderId, status string, resourceId int) error {
+	return tx.Table("orders").
 		Where("order_id = ?", orderId).
 		Updates(map[string]interface{}{
 			"status":      status,
@@ -155,8 +156,8 @@ func UpdateResourceAwareOrdersToReady(status string, eta time.Time) ([]pkg.Order
 	return orders, nil
 }
 
-func UpdateResourceAwareOrdersStatusToServing(orderId string) error {
-	return app.DB.Table("orders").
+func UpdateResourceAwareOrdersStatusToServing(tx *gorm.DB, orderId string) error {
+	return tx.Table("orders").
 		Where("order_id = ?", orderId).
 		Updates(map[string]interface{}{
 			"status": "SERVING",

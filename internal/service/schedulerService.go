@@ -7,12 +7,13 @@ import (
 	"time"
 
 	log "github.com/Thanga-tamil/logger_lib"
+	"gorm.io/gorm"
 )
 
 // recordExecution persists an audit entry for a single order status transition
 // every time an order changes state (PENDING -> PREPARING -> SERVED). This is
 // the audit trail required by the problem statement.
-func recordExecution(o *pkg.Order) {
+func recordExecution(tx *gorm.DB, o *pkg.Order) {
 	timeEstimated := int64(o.Eta.Sub(o.CreatedAt).Seconds())
 	if timeEstimated < 0 {
 		timeEstimated = 0
@@ -22,7 +23,7 @@ func recordExecution(o *pkg.Order) {
 		timeElapsed = 0
 	}
 
-	repository.RecordExecution(&pkg.OrderExecution{
+	repository.RecordExecution(tx, &pkg.OrderExecution{
 		OrderId:       o.OrderId,
 		Status:        o.Status,
 		Algorithm:     o.Alg,

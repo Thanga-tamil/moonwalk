@@ -5,10 +5,13 @@ import (
 	"sync"
 	"time"
 
+	"moonwalk/internal/app"
 	orderRepo "moonwalk/internal/repository"
 	resourceRepo "moonwalk/internal/repository"
+	"moonwalk/internal/utils"
 
 	log "github.com/Thanga-tamil/logger_lib"
+	"gorm.io/gorm"
 )
 
 const (
@@ -46,153 +49,168 @@ func processResourceAwareOrders() {
 	// update the resource aware orders by minusing supplier time taken from ETA and
 	// update the status to 'READY'
 	eta := time.Now().Add(time.Minute)
-
-	orders, err := orderRepo.UpdateResourceAwareOrdersToReady(READY, eta)
-	log.Debug("check: ", orders)
-	if err != nil {
-		log.Error("Cron: error updating resource aware orders to READY:", err.Error())
-	}
-
-	// audit the transition to READY
-	for _, o := range orders {
-		o.Status = READY
-		recordExecution(&o)
-	}
-
-	resources, err := resourceRepo.GetSuppliers()
-	if err != nil {
-		log.Error("Cron: error fetching suppliers:", err.Error())
-		return
-	}
-
-	order, err := orderRepo.GetResourceAwareOrders(READY)
-	if err != nil {
-		log.Error("Cron: error fetching resource aware orders:", err.Error())
-		return
-	}
-
-	log.Debug("retrieved ready order: ", order)
-	log.Debug("strings.TrimSpace(order.OrderId) != '': ", strings.TrimSpace(order.OrderId) != "")
-
-	if strings.TrimSpace(order.OrderId) != "" {
-		for _, resource := range *resources {
-			if resource.Status == BUSY {
-				continue
-			}
-			log.Debug("Cron: processing resource aware order: %s with resource: %s", order.OrderId, resource.Type)
-
-			if err := resourceRepo.UpdateChefStatusToIdle(IDLE, order.ResourceId); err != nil {
-				log.Error("Cron: error updating supplier status:", err.Error())
-				continue
-			}
-			if err := resourceRepo.UpdateSupplierStatusToBusy(&resource, BUSY, order.OrderId); err != nil {
-				log.Error("Cron: error updating supplier status:", err.Error())
-				continue
-			}
-			if err := orderRepo.UpdateResourceAwareOrdersStatusToServing(order.OrderId); err != nil {
-				log.Error("Cron: error serving resource aware orders:", err.Error())
-				continue
-			}
-			order.ResourceId = resource.Id
-			order.Status = "SERVING"
-
-			// audit the transition to SERVING
-			recordExecution(&order)
+	err := app.DB.Transaction(func(tx *gorm.DB) error {
+		orders, err := orderRepo.UpdateResourceAwareOrdersToReady(READY, eta)
+		if err != nil {
+			log.Error("Cron: error updating resource aware orders to READY:", err.Error())
+			return err
 		}
-	}
 
+		// audit the transition to READY
+		for _, o := range orders {
+			o.Status = READY
+			recordExecution(tx, &o)
+		}
+
+		resources, err := resourceRepo.GetSuppliers()
+		if err != nil {
+			log.Error("Cron: error fetching suppliers:", err.Error())
+			return err
+		}
+
+		order, err := orderRepo.GetResourceAwareOrders(READY)
+		if err != nil {
+			log.Error("Cron: error fetching resource aware orders:", err.Error())
+			return err
+		}
+
+		if strings.TrimSpace(order.OrderId) != "" {
+			for _, resource := range *resources {
+				if resource.Status == BUSY {
+					continue
+				}
+				log.Debugf("Cron: processing resource aware order: %s with resource: %s", order.OrderId, resource.Type)
+
+				if err := resourceRepo.UpdateChefStatusToIdle(tx, IDLE, order.ResourceId); err != nil {
+					log.Error("Cron: error updating supplier status:", err.Error())
+					continue
+				}
+				if err := resourceRepo.UpdateSupplierStatusToBusy(tx, &resource, BUSY, order.OrderId); err != nil {
+					log.Error("Cron: error updating supplier status:", err.Error())
+					continue
+				}
+				if err := orderRepo.UpdateResourceAwareOrdersStatusToServing(tx, order.OrderId); err != nil {
+					log.Error("Cron: error serving resource aware orders:", err.Error())
+					continue
+				}
+				order.ResourceId = resource.Id
+				order.Status = "SERVING"
+
+				// audit the transition to SERVING
+				recordExecution(tx, &order)
+			}
+		}
+
+		return nil
+	})
+	if err != nil {
+		log.Error("Cron: error processing resource aware orders:", err.Error())
+	}
 }
 
 func processPendingOrders() {
 	log.Info("scheduled call :: process pending orders")
-	orders, err := orderRepo.GetPendingOrders()
-	if err != nil {
-		log.Error("Cron: error fetching pending orders:", err.Error())
-		return
-	}
-	if len(orders) == 0 {
-		return
-	}
-	log.Infof("pending orders: %#v", &orders)
+	err := app.DB.Transaction(func(tx *gorm.DB) error {
 
-	resources, err := resourceRepo.GetResources()
-	log.Infof("available resources: %#v", resources)
-	if err != nil {
-		log.Error("Cron: error fetching resources:", err.Error())
-		return
-	}
-
-	for _, o := range orders {
-		log.Debug("Cron: processing pending order: %s", o.OrderId)
-		dish, err := orderRepo.GetDish(o.DishId)
+		orders, err := orderRepo.GetPendingOrders()
 		if err != nil {
-			log.Error("Cron: error fetching dish:", err.Error())
-			continue
+			log.Error("Cron: error fetching pending orders:", err.Error())
+			return err
+		}
+		if len(orders) == 0 {
+			return err
 		}
 
-		backlogMinutes, err := backlogFor(dish)
+		utils.PrettyPrint("pending orders", orders)
+
+		resources, err := resourceRepo.GetResources()
 		if err != nil {
-			log.Error("Cron: error computing backlog:", err.Error())
-			continue
+			log.Error("Cron: error fetching resources:", err.Error())
+			return err
 		}
 
-		order := scheduler(dish, resources, backlogMinutes)
-		if order.ResourceId > 0 {
-			var status string
-			if order.Alg == FIFO {
-				status = "PROCESSING"
-			} else {
-				status = "PREPARING"
-			}
-			log.Infox("Cron: assigning pending order", o.OrderId, "to resource", order.ResourceId)
-			if err := orderRepo.UpdateOrderStatusAndResourceId(o.OrderId, status, order.ResourceId); err != nil {
-				log.Error("Cron: error updating order status:", err.Error())
+		for _, o := range orders {
+			log.Debug("Cron: processing pending order: ", o.OrderId)
+			dish, err := orderRepo.GetDish(o.DishId)
+			if err != nil {
+				log.Error("Cron: error fetching dish:", err.Error())
 				continue
 			}
-			if err := resourceRepo.UpdateResourceStatus(order.ResourceId, BUSY, o.OrderId); err != nil {
-				log.Error("Cron: error updating resource status:", err.Error())
+
+			backlogMinutes, err := backlogFor(dish)
+			if err != nil {
+				log.Error("Cron: error computing backlog:", err.Error())
 				continue
 			}
-			// audit the transition to PREPARING
-			o.Status = status
-			o.ResourceId = order.ResourceId
-			recordExecution(&o)
+
+			order := scheduler(dish, resources, backlogMinutes)
+			if order.ResourceId > 0 {
+				var status string
+				if order.Alg == FIFO {
+					status = "PROCESSING"
+				} else {
+					status = "PREPARING"
+				}
+				log.Infox("Cron: assigning pending order", o.OrderId, "to resource", order.ResourceId)
+				if err := orderRepo.UpdateOrderStatusAndResourceId(tx, o.OrderId, status, order.ResourceId); err != nil {
+					log.Error("Cron: error updating order status:", err.Error())
+					continue
+				}
+				if err := resourceRepo.UpdateResourceStatus(tx, order.ResourceId, BUSY, o.OrderId); err != nil {
+					log.Error("Cron: error updating resource status:", err.Error())
+					continue
+				}
+				// audit the transition to PREPARING
+				o.Status = status
+				o.ResourceId = order.ResourceId
+				recordExecution(tx, &o)
+			}
 		}
+		return nil
+	})
+	if err != nil {
+		log.Error("Cron: error processing pending orders:", err.Error())
 	}
 }
 
 func processCompletedOrders() {
 	log.Info("scheduled call :: process completed orders")
-	orders, err := orderRepo.GetPreparingOrdersPastETA()
-	if err != nil {
-		log.Error("Cron: error fetching completed orders:", err.Error())
-		return
-	}
-
-	for _, o := range orders {
-		log.Infof("cron: completing order id: %s alg: %s ", o.OrderId, o.Alg)
-		if err := orderRepo.UpdateOrderStatus(o.OrderId, "SERVED", time.Now()); err != nil {
-			log.Error("Cron: error updating order status:", err.Error())
-			continue
+	err := app.DB.Transaction(func(tx *gorm.DB) error {
+		orders, err := orderRepo.GetPreparingOrdersPastETA(tx)
+		if err != nil {
+			log.Error("Cron: error fetching completed orders:", err.Error())
+			return err
 		}
-		if o.ResourceId > 0 {
-			// empty the resource's current order id since the order is now served
-			currentOrderId := ""
-			var resourceId int
-			if o.Alg == RES_AWARE {
-				resourceId = resourceRepo.FindResourceByOrderId(o.OrderId)
+
+		for _, o := range orders {
+			log.Infof("cron: completing order id: %s alg: %s ", o.OrderId, o.Alg)
+			if err := orderRepo.UpdateOrderStatus(tx, o.OrderId, "SERVED", time.Now()); err != nil {
+				log.Error("Cron: error updating order status:", err.Error())
+				continue
+			}
+			if o.ResourceId > 0 {
+				// empty the resource's current order id since the order is now served
+				currentOrderId := ""
+				var resourceId int
+				if o.Alg == RES_AWARE {
+					resourceId = resourceRepo.FindResourceByOrderId(tx, o.OrderId)
+				} else {
+					resourceId = o.ResourceId
+				}
+				if err := resourceRepo.UpdateResourceStatus(tx, resourceId, IDLE, currentOrderId); err != nil {
+					log.Error("Cron: error freeing resource:", err.Error())
+				}
 			} else {
-				resourceId = o.ResourceId
+				log.Warn("Cron: order ", o.OrderId, " has no assigned resource, cannot free resource")
 			}
-			if err := resourceRepo.UpdateResourceStatus(resourceId, IDLE, currentOrderId); err != nil {
-				log.Error("Cron: error freeing resource:", err.Error())
-			}
-		} else {
-			log.Warn("Cron: order ", o.OrderId, " has no assigned resource, cannot free resource")
-		}
 
-		// audit the transition to SERVED
-		o.Status = "SERVED"
-		recordExecution(&o)
+			// audit the transition to SERVED
+			o.Status = "SERVED"
+			recordExecution(tx, &o)
+		}
+		return nil
+	})
+	if err != nil {
+		log.Error("Cron: error processing completed orders:", err.Error())
 	}
 }

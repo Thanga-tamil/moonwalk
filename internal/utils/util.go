@@ -1,11 +1,13 @@
 package utils
 
 import (
+	"encoding/json"
 	"errors"
 	"fmt"
 	"moonwalk/pkg"
 	"strconv"
 
+	log "github.com/Thanga-tamil/logger_lib"
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 )
@@ -68,4 +70,12 @@ func Filter(resources []pkg.Resources, filterType string) []pkg.Resources {
 	}
 
 	return result
+}
+
+func PrettyPrint(title string, data interface{}) {
+	data, err := json.MarshalIndent(data, "", "  ")
+	if err != nil {
+		log.Errorf("failed to marshal %s: %v", title, err)
+	}
+	log.Infof("%s:\n%s", title, data)
 }

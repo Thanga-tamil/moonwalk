@@ -3,6 +3,8 @@ package repository
 import (
 	"moonwalk/internal/app"
 	"moonwalk/pkg"
+
+	"gorm.io/gorm"
 )
 
 func GetResources() (*[]pkg.Resources, error) {
@@ -25,8 +27,8 @@ func GetSuppliers() (*[]pkg.Resources, error) {
 	return &resources, nil
 }
 
-func UpdateResourceStatus(resourceId int, status string, currentOrderId string) error {
-	return app.DB.Table("resources").
+func UpdateResourceStatus(tx *gorm.DB, resourceId int, status string, currentOrderId string) error {
+	return tx.Table("resources").
 		Where("id = ?", resourceId).
 		Updates(map[string]interface{}{
 			"status":           status,
@@ -34,8 +36,8 @@ func UpdateResourceStatus(resourceId int, status string, currentOrderId string) 
 		}).Error
 }
 
-func UpdateSupplierStatusToBusy(resource *pkg.Resources, status, orderId string) error {
-	return app.DB.Table("resources").
+func UpdateSupplierStatusToBusy(tx *gorm.DB, resource *pkg.Resources, status, orderId string) error {
+	return tx.Table("resources").
 		Where("id = ?", resource.Id).
 		Updates(map[string]interface{}{
 			"status":           status,
@@ -43,8 +45,8 @@ func UpdateSupplierStatusToBusy(resource *pkg.Resources, status, orderId string)
 		}).Error
 }
 
-func UpdateChefStatusToIdle(status string, resourceId int) error {
-	return app.DB.Table("resources").
+func UpdateChefStatusToIdle(tx *gorm.DB, status string, resourceId int) error {
+	return tx.Table("resources").
 		Where("id = ?", resourceId).
 		Updates(map[string]interface{}{
 			"status":           status,
@@ -52,10 +54,10 @@ func UpdateChefStatusToIdle(status string, resourceId int) error {
 		}).Error
 }
 
-func FindResourceByOrderId(orderId string) int {
+func FindResourceByOrderId(tx *gorm.DB, orderId string) int {
 	var resource pkg.Resources
 
-	if err := app.DB.Table("resources").Where("current_order_id = ?", orderId).First(&resource).Error; err != nil {
+	if err := tx.Table("resources").Where("current_order_id = ?", orderId).First(&resource).Error; err != nil {
 		return 0
 	}
 

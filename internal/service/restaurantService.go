@@ -8,7 +8,9 @@ import (
 
 	log "github.com/Thanga-tamil/logger_lib"
 	"github.com/gin-gonic/gin"
+	"gorm.io/gorm"
 
+	"moonwalk/internal/app"
 	"moonwalk/internal/repository"
 	"moonwalk/pkg"
 )
@@ -75,59 +77,67 @@ func ValidatePlaceOrderInput(ctx *gin.Context) (*pkg.PlaceOrderDto, error) {
 }
 
 func PlaceOrder(ctx *gin.Context, data *pkg.PlaceOrderDto) {
-	dish, err := repository.GetDish(data.DishId)
+	err := app.DB.Transaction(func(tx *gorm.DB) error {
+		dish, err := repository.GetDish(data.DishId)
 
-	if err != nil {
-		log.Error("Error while parsing place order input:", err.Error())
-		WriteErr(ctx, err.Error())
-		return
-	} else if dish.Dish == "" {
-		WriteErr(ctx, "dish not available for the input dishId")
-		return
-	}
-
-	resources, err := repository.GetResources()
-
-	if err != nil {
-		WriteErr(ctx, err.Error())
-		return
-	}
-
-	backlogMinutes, err := backlogFor(dish)
-	if err != nil {
-		log.Error("Error while computing backlog:", err.Error())
-		WriteErr(ctx, err.Error())
-		return
-	}
-
-	order := scheduler(dish, resources, backlogMinutes)
-
-	if err := repository.Save(&order); err != nil {
-		WriteErr(ctx, err.Error())
-		return
-	}
-
-	// persist the audit trail for the order creation step
-	recordExecution(&order)
-
-	// if a resource is available, update the order status to PREPARING or PROCESSING
-	// based on algorithm and update the resource status to BUSY
-	if order.ResourceId > 0 {
-		if order.Alg == FIFO {
-			order.Status = "PROCESSING"
-		} else {
-			order.Status = "PREPARING"
+		if err != nil {
+			log.Error("Error while parsing place order input:", err.Error())
+			WriteErr(ctx, err.Error())
+			return err
+		} else if dish.Dish == "" {
+			WriteErr(ctx, "dish not available for the input dishId")
+			return err
 		}
-		repository.UpdateOrderStatus(order.OrderId, order.Status, time.Time{})
-		repository.UpdateResourceStatus(order.ResourceId, BUSY, order.OrderId)
-		recordExecution(&order)
-	}
 
-	response := map[string]interface{}{
-		"statusCode": 200,
-		"message":    "Order placed successfully",
-		"data":       order,
-	}
+		resources, err := repository.GetResources()
 
-	ctx.JSON(http.StatusOK, response)
+		if err != nil {
+			WriteErr(ctx, err.Error())
+			return err
+		}
+
+		backlogMinutes, err := backlogFor(dish)
+		if err != nil {
+			log.Error("Error while computing backlog:", err.Error())
+			WriteErr(ctx, err.Error())
+			return err
+		}
+
+		order := scheduler(dish, resources, backlogMinutes)
+
+		if err := repository.Save(&order); err != nil {
+			WriteErr(ctx, err.Error())
+			return err
+		}
+
+		// persist the audit trail for the order creation step
+		recordExecution(tx, &order)
+
+		// if a resource is available, update the order status to PREPARING or PROCESSING
+		// based on algorithm and update the resource status to BUSY
+		if order.ResourceId > 0 {
+			if order.Alg == FIFO {
+				order.Status = "PROCESSING"
+			} else {
+				order.Status = "PREPARING"
+			}
+			repository.UpdateOrderStatus(tx, order.OrderId, order.Status, time.Time{})
+			repository.UpdateResourceStatus(tx, order.ResourceId, BUSY, order.OrderId)
+			recordExecution(tx, &order)
+		}
+
+		response := map[string]interface{}{
+			"statusCode": 200,
+			"message":    "Order placed successfully",
+			"data":       order,
+		}
+
+		ctx.JSON(http.StatusOK, response)
+		return nil
+	})
+	if err != nil {
+		log.Error("Error while placing order:", err.Error())
+		WriteErr(ctx, err.Error())
+		return
+	}
 }
