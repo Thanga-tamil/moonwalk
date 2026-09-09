@@ -26,22 +26,21 @@ func GetPendingOrders() ([]pkg.Order, error) {
 	return orders, nil
 }
 
-func GetResourceAwareOrders(status string) (string, error) {
-	var id string = ""
+func GetResourceAwareOrders(status string) (*pkg.Order, error) {
+	var order pkg.Order
 
 	err := app.DB.Table("orders").
-		Select("orders.order_id").
 		Where("status = ? AND alg = ?", status, "RESOURCE AWARE").
 		Order("created_at ASC limit 1").
-		Find(&id).
+		Find(&order).
 		Error
 
 	if err != nil {
 		log.Error(err.Error())
-		return id, err
+		return nil, err
 	}
 
-	return id, nil
+	return &order, nil
 }
 
 func GetOrder(orderId string) (pkg.Order, error) {
@@ -126,9 +125,9 @@ func GetPendingBacklog() (fifoCount, resourceMinutes int, err error) {
 	return int(fifo), int(minutes), nil
 }
 
-func UpdateResourceAwareOrdersToReady(status string) error {
+func UpdateResourceAwareOrdersToReady(status string, eta time.Time) error {
 	return app.DB.Table("orders").
-		Where("status = ? AND eta <= ?", "PREPARING", time.Now()).
+		Where("status = ? AND eta <= ?", "PREPARING", eta).
 		Updates(map[string]interface{}{"status": status}).
 		Error
 }
@@ -137,7 +136,7 @@ func ServeResourceAwareOrders(resource *pkg.Resources, orderId string) error {
 	return app.DB.Table("orders").
 		Where("order_id = ?", orderId).
 		Updates(map[string]interface{}{
-			"resource_id": resource.Id,
-			"status":      "SERVING",
+			// "resource_id": resource.Id,
+			"status": "SERVING",
 		}).Error
 }

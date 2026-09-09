@@ -42,3 +42,12 @@ func UpdateSupplierStatus(resource *pkg.Resources, status, orderId string) error
 			"current_order_id": orderId,
 		}).Error
 }
+
+func UpdateChefStatus(status string, resourceId int) error {
+	return app.DB.Table("resources").
+		Where("id = ?", resourceId).
+		Updates(map[string]interface{}{
+			"status":           status,
+			"current_order_id": "",
+		}).Error
+}

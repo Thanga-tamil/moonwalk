@@ -9,7 +9,10 @@ import (
 	log "github.com/Thanga-tamil/logger_lib"
 )
 
-const CRON_INTERVAL = 5 * time.Second
+const (
+	CRON_INTERVAL = 5 * time.Second
+	READY         = "READY"
+)
 
 var cronMu sync.Mutex
 
@@ -34,9 +37,15 @@ func StartCronService() {
 // make sure to add transaction for data consistency
 
 func processResourceAwareOrders() {
-	status := "READY"
 	log.Info("process resource aware orders")
-	if err := repository.UpdateResourceAwareOrdersToReady(status); err != nil {
+
+	// each resource aware orders has to be served to customers by a supplier
+	// ETA was calculated with the consideration of supplier time taken, so fetch and
+	// update the resource aware orders by minusing supplier time taken from ETA and
+	// update the status to 'READY'
+	eta := time.Now().Add(time.Minute)
+
+	if err := repository.UpdateResourceAwareOrdersToReady(READY, eta); err != nil {
 		log.Error("Cron: error updating resource aware orders to READY:", err.Error())
 	}
 
@@ -46,30 +55,33 @@ func processResourceAwareOrders() {
 		return
 	}
 
-	orderId, err := repository.GetResourceAwareOrders(status)
+	order, err := repository.GetResourceAwareOrders(READY)
 
 	if err != nil {
 		log.Error("Cron: error fetching resource aware orders:", err.Error())
 	} else {
-		if strings.TrimSpace(orderId) != "" {
+		if strings.TrimSpace(order.OrderId) != "" {
 			for _, resource := range *resources {
-				if resource.Status == "BUSY" {
+				if resource.Status == BUSY {
 					continue
 				}
 
 				log.Debug("Cron: processing resource aware with resource: ", resource.Id)
 
-				if err := repository.UpdateSupplierStatus(&resource, "BUSY", orderId); err != nil {
+				if err := repository.UpdateChefStatus(IDLE, order.ResourceId); err != nil {
 					log.Error("Cron: error updating supplier status:", err.Error())
 					continue
 				}
-				if err := repository.ServeResourceAwareOrders(&resource, orderId); err != nil {
+				if err := repository.UpdateSupplierStatus(&resource, BUSY, order.OrderId); err != nil {
+					log.Error("Cron: error updating supplier status:", err.Error())
+					continue
+				}
+				if err := repository.ServeResourceAwareOrders(&resource, order.OrderId); err != nil {
 					log.Error("Cron: error serving resource aware orders:", err.Error())
 					continue
 				}
 			}
 		}
-
 	}
 
 }
