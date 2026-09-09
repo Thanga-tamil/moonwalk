@@ -39,7 +39,7 @@ func StartCronService() {
 // make sure to add transaction for data consistency
 
 func processResourceAwareOrders() {
-	log.Info("process resource aware orders")
+	log.Info("scheduled call :: process resource aware orders")
 
 	// each resource aware orders has to be served to customers by a supplier
 	// ETA was calculated with the consideration of supplier time taken, so fetch and
@@ -47,10 +47,16 @@ func processResourceAwareOrders() {
 	// update the status to 'READY'
 	eta := time.Now().Add(time.Minute)
 
-	if err := orderRepo.UpdateResourceAwareOrdersToReady(READY, eta); err != nil {
+	orders, err := orderRepo.UpdateResourceAwareOrdersToReady(READY, eta)
+	if err != nil {
 		log.Error("Cron: error updating resource aware orders to READY:", err.Error())
 	}
-	// order.Status = READY
+
+	// audit the transition to READY
+	for _, o := range orders {
+		o.Status = READY
+		recordExecution(&o)
+	}
 
 	resources, err := resourceRepo.GetSuppliers()
 	if err != nil {
@@ -69,7 +75,7 @@ func processResourceAwareOrders() {
 					continue
 				}
 
-				log.Debug("Cron: processing resource aware with resource: ", resource.Id)
+				log.Debug("Cron: processing resource aware order: %s with resource: %s", order.OrderId, resource.Type)
 
 				if err := resourceRepo.UpdateChefStatusToIdle(IDLE, order.ResourceId); err != nil {
 					log.Error("Cron: error updating supplier status:", err.Error())
@@ -85,6 +91,8 @@ func processResourceAwareOrders() {
 				}
 				order.ResourceId = resource.Id
 				order.Status = "SERVING"
+
+				// audit the transition to SERVING
 				recordExecution(order)
 			}
 		}
@@ -93,7 +101,7 @@ func processResourceAwareOrders() {
 }
 
 func processPendingOrders() {
-	log.Info("process pending orders")
+	log.Info("scheduled call :: process pending orders")
 	orders, err := orderRepo.GetPendingOrders()
 	log.Infof("pending orders: %#v", &orders)
 	if err != nil {
@@ -112,7 +120,7 @@ func processPendingOrders() {
 	}
 
 	for _, o := range orders {
-		log.Debug("Cron: processing pending order: ", o.OrderId)
+		log.Debug("Cron: processing pending order: %s", o.OrderId)
 		dish, err := orderRepo.GetDish(o.DishId)
 		if err != nil {
 			log.Error("Cron: error fetching dish:", err.Error())
@@ -151,7 +159,7 @@ func processPendingOrders() {
 }
 
 func processCompletedOrders() {
-	log.Info("process completed orders")
+	log.Info("scheduled call :: process completed orders")
 	orders, err := orderRepo.GetPreparingOrdersPastETA()
 	if err != nil {
 		log.Error("Cron: error fetching completed orders:", err.Error())
@@ -165,8 +173,15 @@ func processCompletedOrders() {
 			continue
 		}
 		if o.ResourceId > 0 {
-			currentOrderId := "" // empty the resource's current order id since the order is now served
-			if err := resourceRepo.UpdateResourceStatus(o.ResourceId, IDLE, currentOrderId); err != nil {
+			// empty the resource's current order id since the order is now served
+			currentOrderId := ""
+			var resourceId int
+			if o.Alg == RES_AWARE {
+				resourceId = resourceRepo.FindResourceByOrderId(o.OrderId)
+			} else {
+				resourceId = o.ResourceId
+			}
+			if err := resourceRepo.UpdateResourceStatus(resourceId, IDLE, currentOrderId); err != nil {
 				log.Error("Cron: error freeing resource:", err.Error())
 			}
 		} else {

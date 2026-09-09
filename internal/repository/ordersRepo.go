@@ -125,11 +125,34 @@ func GetPendingBacklog() (fifoCount, resourceMinutes int, err error) {
 	return int(fifo), int(minutes), nil
 }
 
-func UpdateResourceAwareOrdersToReady(status string, eta time.Time) error {
-	return app.DB.Table("orders").
+// update orders to ready based on ETA and retrieve the updated records.
+func UpdateResourceAwareOrdersToReady(status string, eta time.Time) ([]pkg.Order, error) {
+	var orders []pkg.Order
+
+	if err := app.DB.Table("orders").
 		Where("status = ? AND eta <= ?", "PREPARING", eta).
-		Updates(map[string]interface{}{"status": status}).
-		Error
+		Find(&orders).Error; err != nil {
+		return nil, err
+	}
+
+	if len(orders) == 0 {
+		return orders, nil
+	}
+
+	ids := make([]string, 0, len(orders))
+	for _, order := range orders {
+		ids = append(ids, order.OrderId)
+	}
+
+	if err := app.DB.Table("orders").
+		Where("id IN ?", ids).
+		Updates(map[string]interface{}{
+			"status": status,
+		}).Error; err != nil {
+		return nil, err
+	}
+
+	return orders, nil
 }
 
 func UpdateResourceAwareOrdersStatusToServing(resource *pkg.Resources, orderId string) error {

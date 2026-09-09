@@ -51,3 +51,13 @@ func UpdateChefStatusToIdle(status string, resourceId int) error {
 			"current_order_id": "",
 		}).Error
 }
+
+func FindResourceByOrderId(orderId string) int {
+	var resource pkg.Resources
+
+	if err := app.DB.Table("resources").Where("current_order_id = ?", orderId).First(&resource).Error; err != nil {
+		return 0
+	}
+
+	return resource.Id
+}
