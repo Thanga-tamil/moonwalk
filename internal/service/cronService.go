@@ -62,7 +62,7 @@ func processResourceAwareOrders(status string) {
 func processPendingOrders() {
 	log.Info("process pending orders")
 	orders, err := repository.GetPendingOrders()
-	log.Info("pending orders: ", orders)
+	log.Infof("pending orders: %#v", &orders)
 	if err != nil {
 		log.Error("Cron: error fetching pending orders:", err.Error())
 		return
@@ -72,14 +72,14 @@ func processPendingOrders() {
 	}
 
 	resources, err := repository.GetResources()
-	log.Info("available resources: ", resources)
+	log.Infof("available resources: %#v", resources)
 	if err != nil {
 		log.Error("Cron: error fetching resources:", err.Error())
 		return
 	}
 
 	for _, o := range orders {
-		log.Debug("Cron: processing pending order", o.OrderId)
+		log.Debug("Cron: processing pending order: ", o.OrderId)
 		dish, err := repository.GetDish(o.DishId)
 		if err != nil {
 			log.Error("Cron: error fetching dish:", err.Error())

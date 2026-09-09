@@ -55,9 +55,7 @@ func Pagination(ctx *gin.Context) (int, int, error) {
 }
 
 func GetRandomUUID() string {
-	uuid := uuid.New().String()
-	fmt.Println("uuid:", uuid)
-	return uuid
+	return uuid.New().String()
 }
 
 func Filter(resources []pkg.Resources, filterType string) []pkg.Resources {
