@@ -102,7 +102,7 @@ func processResourceAwareOrders() {
 			orderSubList = append(orderSubList, orders[i])
 		}
 
-		for i, order := range orders {
+		for i, order := range orderSubList {
 			supply := suppliers[i]
 			if supply.Status == IDLE {
 				log.Debugf("Cron: processing resource aware order: %s with resource: %s", order.OrderId, supply.Type)

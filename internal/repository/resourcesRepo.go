@@ -10,7 +10,7 @@ import (
 func GetResources() (*[]pkg.Resources, error) {
 	var resources []pkg.Resources
 
-	if err := app.DB.Table("resources").Find(&resources).Error; err != nil {
+	if err := app.DB.Table("resources").Find(&resources).Order("updated_at ASC").Error; err != nil {
 		return nil, err
 	}
 
@@ -20,7 +20,10 @@ func GetResources() (*[]pkg.Resources, error) {
 func GetSuppliers() ([]pkg.Resources, error) {
 	var resources []pkg.Resources
 
-	if err := app.DB.Table("resources").Where("order_handling_type = ?", true).Find(&resources).Error; err != nil {
+	if err := app.DB.Table("resources").
+		Where("order_handling_type = ?", true).Find(&resources).
+		Order("updated_at ASC").
+		Error; err != nil {
 		return nil, err
 	}
 
