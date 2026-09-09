@@ -34,7 +34,7 @@ func UpdateResourceStatus(resourceId int, status string, currentOrderId string) 
 		}).Error
 }
 
-func UpdateSupplierStatus(resource *pkg.Resources, status, orderId string) error {
+func UpdateSupplierStatusToBusy(resource *pkg.Resources, status, orderId string) error {
 	return app.DB.Table("resources").
 		Where("id = ?", resource.Id).
 		Updates(map[string]interface{}{
@@ -43,7 +43,7 @@ func UpdateSupplierStatus(resource *pkg.Resources, status, orderId string) error
 		}).Error
 }
 
-func UpdateChefStatus(status string, resourceId int) error {
+func UpdateChefStatusToIdle(status string, resourceId int) error {
 	return app.DB.Table("resources").
 		Where("id = ?", resourceId).
 		Updates(map[string]interface{}{

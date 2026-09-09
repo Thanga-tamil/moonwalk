@@ -132,7 +132,7 @@ func UpdateResourceAwareOrdersToReady(status string, eta time.Time) error {
 		Error
 }
 
-func ServeResourceAwareOrders(resource *pkg.Resources, orderId string) error {
+func UpdateResourceAwareOrdersStatusToServing(resource *pkg.Resources, orderId string) error {
 	return app.DB.Table("orders").
 		Where("order_id = ?", orderId).
 		Updates(map[string]interface{}{
