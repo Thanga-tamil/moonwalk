@@ -82,7 +82,7 @@ func PlaceOrder(ctx *gin.Context, data *pkg.PlaceOrderDto) {
 		WriteErr(ctx, err.Error())
 		return
 	} else if dish.Dish == "" {
-		WriteErr(ctx, "dish not found for the input dishId")
+		WriteErr(ctx, "dish not available for the input dishId")
 		return
 	}
 

@@ -1,8 +1,9 @@
 package repository
 
 import (
-	"moonwalk/pkg"
 	"moonwalk/internal/app"
+	"moonwalk/pkg"
+
 	log "github.com/Thanga-tamil/logger_lib"
 )
 
@@ -12,11 +13,11 @@ func GetAllDishes(page, size int) ([]pkg.Dish, error) {
 	var dishes []pkg.Dish
 
 	err := app.DB.Table("dishes").
-				  Select(`id, dish, price, prep_time, ` +
-				  		 `is_available, created_at`).
-				  Limit(size).Offset(offset).
-				  Scan(&dishes).
-				  Error
+		Select(`id, dish, price, prep_time, ` +
+			`is_available, created_at`).
+		Limit(size).Offset(offset).
+		Scan(&dishes).
+		Error
 
 	if err != nil {
 		log.Error(err.Error())
@@ -42,7 +43,7 @@ func TotalRecordsOfDishes() (int64, error) {
 func GetDish(dishID int) (pkg.Dish, error) {
 	var dish pkg.Dish
 
-	err := app.DB.Raw("SELECT * FROM dishes WHERE id = ?", dishID).Scan(&dish).Error
+	err := app.DB.Raw("SELECT * FROM dishes WHERE id = ? AND is_available = ?", dishID, true).Scan(&dish).Error
 
 	if err != nil {
 		log.Error(err.Error())
@@ -51,4 +52,3 @@ func GetDish(dishID int) (pkg.Dish, error) {
 
 	return dish, nil
 }
-

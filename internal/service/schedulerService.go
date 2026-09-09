@@ -109,11 +109,11 @@ func resourceAwareSchedule(dish pkg.Dish, resources *[]pkg.Resources, backlogMin
 	// dev in progress
 	// Each RESOURCE AWARE order should be served by a server after compilation of cooking by a chef.
 	// So, the ETA should be calculated as the sum of backlogMinutes + dish.PrepTime + FIFO_ETA_MINUTES
-	eta := time.Now().Add(time.Duration(backlogMinutes+dish.PrepTime) * time.Minute) // + FIFO_ETA_MINUTES
+	eta := time.Now().Add(time.Duration(backlogMinutes+dish.PrepTime+FIFO_ETA_MINUTES) * time.Minute) //
 
 	for _, c := range chefs {
 		if c.Status == IDLE {
-			log.Infox("RESOURCE AWARE schedule: assigning order to chef", c.Id, dish.Id)
+			log.Infof("RESOURCE AWARE schedule: assigning order to chef: %d, dishId: %d", c.Id, dish.Id)
 			return buildOrder(RES_AWARE, utils.GetRandomUUID(), c.Id, dish.Id, eta)
 		}
 	}

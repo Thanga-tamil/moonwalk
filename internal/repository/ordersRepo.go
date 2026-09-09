@@ -27,7 +27,7 @@ func GetPendingOrders() ([]pkg.Order, error) {
 }
 
 func GetResourceAwareOrders(status string) (string, error) {
-	var id string
+	var id string = ""
 
 	err := app.DB.Table("orders").
 		Select("orders.order_id").
@@ -38,7 +38,7 @@ func GetResourceAwareOrders(status string) (string, error) {
 
 	if err != nil {
 		log.Error(err.Error())
-		return "", err
+		return id, err
 	}
 
 	return id, nil
@@ -129,7 +129,8 @@ func GetPendingBacklog() (fifoCount, resourceMinutes int, err error) {
 func UpdateResourceAwareOrdersToReady(status string) error {
 	return app.DB.Table("orders").
 		Where("status = ? AND eta <= ?", "PREPARING", time.Now()).
-		Updates(map[string]interface{}{"status": status}).Error
+		Updates(map[string]interface{}{"status": status}).
+		Error
 }
 
 func ServeResourceAwareOrders(resource *pkg.Resources, orderId string) error {

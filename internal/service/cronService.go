@@ -2,6 +2,7 @@ package service
 
 import (
 	"moonwalk/internal/repository"
+	"strings"
 	"sync"
 	"time"
 
@@ -22,7 +23,7 @@ func StartCronService() {
 				continue
 			}
 
-			processResourceAwareOrders("READY")
+			processResourceAwareOrders()
 			processCompletedOrders()
 			processPendingOrders()
 			cronMu.Unlock()
@@ -30,7 +31,11 @@ func StartCronService() {
 	}()
 }
 
-func processResourceAwareOrders(status string) {
+// make sure to add transaction for data consistency
+
+func processResourceAwareOrders() {
+	status := "READY"
+	log.Info("process resource aware orders")
 	if err := repository.UpdateResourceAwareOrdersToReady(status); err != nil {
 		log.Error("Cron: error updating resource aware orders to READY:", err.Error())
 	}
@@ -41,19 +46,29 @@ func processResourceAwareOrders(status string) {
 		return
 	}
 
-	for _, resource := range *resources {
-		if resource.Status == "BUSY" {
-			continue
-		}
+	orderId, err := repository.GetResourceAwareOrders(status)
 
-		log.Debug("Cron: processing resource aware with resource: ", resource.Id)
-		orderIds, err := repository.GetResourceAwareOrders(status)
-		if err != nil {
-			log.Error("Cron: error fetching resource aware orders:", err.Error())
-			continue
+	if err != nil {
+		log.Error("Cron: error fetching resource aware orders:", err.Error())
+	} else {
+		if strings.TrimSpace(orderId) != "" {
+			for _, resource := range *resources {
+				if resource.Status == "BUSY" {
+					continue
+				}
+
+				log.Debug("Cron: processing resource aware with resource: ", resource.Id)
+
+				if err := repository.UpdateSupplierStatus(&resource, "BUSY", orderId); err != nil {
+					log.Error("Cron: error updating supplier status:", err.Error())
+					continue
+				}
+				if err := repository.ServeResourceAwareOrders(&resource, orderId); err != nil {
+					log.Error("Cron: error serving resource aware orders:", err.Error())
+					continue
+				}
+			}
 		}
-		repository.UpdateSupplierStatus(&resource, "BUSY", orderIds)
-		repository.ServeResourceAwareOrders(&resource, orderIds)
 
 	}
 
@@ -118,6 +133,7 @@ func processPendingOrders() {
 }
 
 func processCompletedOrders() {
+	log.Info("process completed orders")
 	orders, err := repository.GetPreparingOrdersPastETA()
 	if err != nil {
 		log.Error("Cron: error fetching completed orders:", err.Error())
