@@ -1,15 +1,15 @@
 package service
 
 import (
+	"moonwalk/internal/app"
+	"moonwalk/pkg"
 	"testing"
 	"time"
-	"moonwalk/pkg"
-	"moonwalk/internal/app"
 
 	log "github.com/Thanga-tamil/logger_lib"
-	"gorm.io/gorm"
-	"gorm.io/driver/sqlite"
 	_ "github.com/mattn/go-sqlite3"
+	"gorm.io/driver/sqlite"
+	"gorm.io/gorm"
 )
 
 // setupTestDB creates an in-memory SQLite instance with the schema
@@ -169,7 +169,7 @@ func TestProcessCompletedOrdersNotPastETA(t *testing.T) {
 
 func TestProcessPendingFifoOrder(t *testing.T) {
 	setupTestDB(t)
-	seedResource(t, 3, "SERVER", IDLE)
+	seedResource(t, 3, "SUPPLIER", IDLE)
 	seedDish(t, 2, 0, true)
 	seedOrder(t, "o1", 2, 0, "PENDING", time.Now())
 
@@ -202,7 +202,7 @@ func TestProcessPendingResourceAwareOrder(t *testing.T) {
 func TestProcessPendingNoAvailableResource(t *testing.T) {
 	setupTestDB(t)
 	seedResource(t, 1, "CHEF", BUSY)
-	seedResource(t, 3, "SERVER", BUSY)
+	seedResource(t, 3, "SUPPLIER", BUSY)
 	seedDish(t, 3, 20, false)
 	seedOrder(t, "o1", 3, 0, "PENDING", time.Now())
 

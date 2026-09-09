@@ -1,9 +1,9 @@
 package service
 
 import (
+	"moonwalk/pkg"
 	"testing"
 	"time"
-	"moonwalk/pkg"
 )
 
 func TestSchedulerFifoAssignment(t *testing.T) {
@@ -11,8 +11,8 @@ func TestSchedulerFifoAssignment(t *testing.T) {
 	resources := []pkg.Resources{
 		{Id: 1, Type: "CHEF", Status: IDLE},
 		{Id: 2, Type: "CHEF", Status: IDLE},
-		{Id: 3, Type: "SERVER", Status: IDLE},
-		{Id: 4, Type: "SERVER", Status: IDLE},
+		{Id: 3, Type: "SUPPLIER", Status: IDLE},
+		{Id: 4, Type: "SUPPLIER", Status: IDLE},
 	}
 
 	order := scheduler(dish, &resources, 0)
@@ -36,8 +36,8 @@ func TestSchedulerFifoNoIdleServerQueues(t *testing.T) {
 	resources := []pkg.Resources{
 		{Id: 1, Type: "CHEF", Status: IDLE},
 		{Id: 2, Type: "CHEF", Status: BUSY},
-		{Id: 3, Type: "SERVER", Status: BUSY},
-		{Id: 4, Type: "SERVER", Status: BUSY},
+		{Id: 3, Type: "SUPPLIER", Status: BUSY},
+		{Id: 4, Type: "SUPPLIER", Status: BUSY},
 	}
 
 	order := scheduler(dish, &resources, 0)
@@ -58,8 +58,8 @@ func TestSchedulerResourceAwareAssignment(t *testing.T) {
 	resources := []pkg.Resources{
 		{Id: 1, Type: "CHEF", Status: IDLE},
 		{Id: 2, Type: "CHEF", Status: IDLE},
-		{Id: 3, Type: "SERVER", Status: IDLE},
-		{Id: 4, Type: "SERVER", Status: IDLE},
+		{Id: 3, Type: "SUPPLIER", Status: IDLE},
+		{Id: 4, Type: "SUPPLIER", Status: IDLE},
 	}
 
 	before := time.Now()
@@ -83,8 +83,8 @@ func TestSchedulerResourceAwareNoIdleChefQueues(t *testing.T) {
 	resources := []pkg.Resources{
 		{Id: 1, Type: "CHEF", Status: BUSY},
 		{Id: 2, Type: "CHEF", Status: BUSY},
-		{Id: 3, Type: "SERVER", Status: IDLE},
-		{Id: 4, Type: "SERVER", Status: IDLE},
+		{Id: 3, Type: "SUPPLIER", Status: IDLE},
+		{Id: 4, Type: "SUPPLIER", Status: IDLE},
 	}
 
 	order := scheduler(dish, &resources, 0)
@@ -103,7 +103,7 @@ func TestSchedulerResourceAwareNoIdleChefQueues(t *testing.T) {
 func TestFifoScheduleEtaCalculation(t *testing.T) {
 	dish := pkg.Dish{Id: 5, PreCooked: true}
 	resources := []pkg.Resources{
-		{Id: 3, Type: "SERVER", Status: IDLE},
+		{Id: 3, Type: "SUPPLIER", Status: IDLE},
 	}
 
 	order := fifoSchedule(dish, &resources, 0)
@@ -117,7 +117,7 @@ func TestFifoScheduleEtaCalculation(t *testing.T) {
 func TestFifoScheduleBacklogEta(t *testing.T) {
 	dish := pkg.Dish{Id: 5, PreCooked: true}
 	resources := []pkg.Resources{
-		{Id: 3, Type: "SERVER", Status: IDLE},
+		{Id: 3, Type: "SUPPLIER", Status: IDLE},
 	}
 	backlogMinutes := 3 * FIFO_ETA_MINUTES // 3 pre-cooked orders already queued
 

@@ -4,6 +4,7 @@ import (
 	"errors"
 	"net/http"
 	"strconv"
+	"time"
 
 	log "github.com/Thanga-tamil/logger_lib"
 	"github.com/gin-gonic/gin"
@@ -109,9 +110,15 @@ func PlaceOrder(ctx *gin.Context, data *pkg.PlaceOrderDto) {
 	// persist the audit trail for the order creation step
 	recordExecution(&order)
 
+	// if a resource is available, update the order status to PREPARING or PROCESSING
+	// based on algorithm and update the resource status to BUSY
 	if order.ResourceId > 0 {
-		order.Status = "PREPARING"
-		repository.UpdateOrderStatus(order.OrderId, order.Status)
+		if order.Alg == FIFO {
+			order.Status = "PROCESSING"
+		} else {
+			order.Status = "PREPARING"
+		}
+		repository.UpdateOrderStatus(order.OrderId, order.Status, time.Time{})
 		repository.UpdateResourceStatus(order.ResourceId, BUSY, order.OrderId)
 		recordExecution(&order)
 	}

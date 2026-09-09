@@ -8,7 +8,7 @@ import (
 	log "github.com/Thanga-tamil/logger_lib"
 )
 
-const CRON_INTERVAL = 10 * time.Second
+const CRON_INTERVAL = 5 * time.Second
 
 var cronMu sync.Mutex
 
@@ -21,6 +21,8 @@ func StartCronService() {
 				log.Debug("Cron iteration skipped: previous iteration still running")
 				continue
 			}
+
+			processResourceAwareOrders("READY")
 			processCompletedOrders()
 			processPendingOrders()
 			cronMu.Unlock()
@@ -28,32 +30,33 @@ func StartCronService() {
 	}()
 }
 
-func processCompletedOrders() {
-	orders, err := repository.GetPreparingOrdersPastETA()
+func processResourceAwareOrders(status string) {
+	if err := repository.UpdateResourceAwareOrdersToReady(status); err != nil {
+		log.Error("Cron: error updating resource aware orders to READY:", err.Error())
+	}
+
+	resources, err := repository.GetSuppliers()
 	if err != nil {
-		log.Error("Cron: error fetching completed orders:", err.Error())
+		log.Error("Cron: error fetching suppliers:", err.Error())
 		return
 	}
 
-	for _, o := range orders {
-		log.Infox("Cron: completing order", o.OrderId)
-		if err := repository.UpdateOrderStatus(o.OrderId, "SERVED"); err != nil {
-			log.Error("Cron: error updating order status:", err.Error())
+	for _, resource := range *resources {
+		if resource.Status == "BUSY" {
 			continue
 		}
-		if o.ResourceId > 0 {
-			currentOrderId := "" // empty the resource's current order id since the order is now served
-			if err := repository.UpdateResourceStatus(o.ResourceId, IDLE, currentOrderId); err != nil {
-				log.Error("Cron: error freeing resource:", err.Error())
-			}
-		} else {
-			log.Warn("Cron: order ", o.OrderId, " has no assigned resource, cannot free resource")
-		}
 
-		// audit the transition to SERVED
-		o.Status = "SERVED"
-		recordExecution(&o)
+		log.Debug("Cron: processing resource aware with resource: ", resource.Id)
+		orderIds, err := repository.GetResourceAwareOrders(status)
+		if err != nil {
+			log.Error("Cron: error fetching resource aware orders:", err.Error())
+			continue
+		}
+		repository.UpdateSupplierStatus(&resource, "BUSY", orderIds)
+		repository.ServeResourceAwareOrders(&resource, orderIds)
+
 	}
+
 }
 
 func processPendingOrders() {
@@ -91,8 +94,14 @@ func processPendingOrders() {
 
 		order := scheduler(dish, resources, backlogMinutes)
 		if order.ResourceId > 0 {
+			var status string
+			if order.Alg == FIFO {
+				status = "PROCESSING"
+			} else {
+				status = "PREPARING"
+			}
 			log.Infox("Cron: assigning pending order", o.OrderId, "to resource", order.ResourceId)
-			if err := repository.UpdateOrderStatusAndResourceId(o.OrderId, "PREPARING", order.ResourceId); err != nil {
+			if err := repository.UpdateOrderStatusAndResourceId(o.OrderId, status, order.ResourceId); err != nil {
 				log.Error("Cron: error updating order status:", err.Error())
 				continue
 			}
@@ -101,9 +110,37 @@ func processPendingOrders() {
 				continue
 			}
 			// audit the transition to PREPARING
-			o.Status = "PREPARING"
+			o.Status = status
 			o.ResourceId = order.ResourceId
 			recordExecution(&o)
 		}
+	}
+}
+
+func processCompletedOrders() {
+	orders, err := repository.GetPreparingOrdersPastETA()
+	if err != nil {
+		log.Error("Cron: error fetching completed orders:", err.Error())
+		return
+	}
+
+	for _, o := range orders {
+		log.Infof("cron: completing order id: %s alg: %s ", o.OrderId, o.Alg)
+		if err := repository.UpdateOrderStatus(o.OrderId, "SERVED", time.Now()); err != nil {
+			log.Error("Cron: error updating order status:", err.Error())
+			continue
+		}
+		if o.ResourceId > 0 {
+			currentOrderId := "" // empty the resource's current order id since the order is now served
+			if err := repository.UpdateResourceStatus(o.ResourceId, IDLE, currentOrderId); err != nil {
+				log.Error("Cron: error freeing resource:", err.Error())
+			}
+		} else {
+			log.Warn("Cron: order ", o.OrderId, " has no assigned resource, cannot free resource")
+		}
+
+		// audit the transition to SERVED
+		o.Status = "SERVED"
+		recordExecution(&o)
 	}
 }

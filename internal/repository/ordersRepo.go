@@ -26,6 +26,24 @@ func GetPendingOrders() ([]pkg.Order, error) {
 	return orders, nil
 }
 
+func GetResourceAwareOrders(status string) (string, error) {
+	var id string
+
+	err := app.DB.Table("orders").
+		Select("orders.order_id").
+		Where("status = ? AND alg = ?", status, "RESOURCE AWARE").
+		Order("created_at ASC limit 1").
+		Find(&id).
+		Error
+
+	if err != nil {
+		log.Error(err.Error())
+		return "", err
+	}
+
+	return id, nil
+}
+
 func GetOrder(orderId string) (pkg.Order, error) {
 	var order pkg.Order
 
@@ -45,7 +63,7 @@ func GetPreparingOrdersPastETA() ([]pkg.Order, error) {
 	var orders []pkg.Order
 
 	err := app.DB.Table("orders").
-		Where("status = ? AND eta <= ?", "PREPARING", time.Now()).
+		Where("status in (?, ?) AND eta <= ?", "PROCESSING", "SERVING", time.Now()).
 		Find(&orders).Error
 
 	if err != nil {
@@ -56,10 +74,13 @@ func GetPreparingOrdersPastETA() ([]pkg.Order, error) {
 	return orders, nil
 }
 
-func UpdateOrderStatus(orderId, status string) error {
+func UpdateOrderStatus(orderId, status string, servedAt time.Time) error {
 	return app.DB.Table("orders").
 		Where("order_id = ?", orderId).
-		Update("status", status).Error
+		Updates(map[string]interface{}{
+			"status":    status,
+			"served_at": servedAt,
+		}).Error
 }
 
 func UpdateOrderStatusAndResourceId(orderId, status string, resourceId int) error {
@@ -103,4 +124,19 @@ func GetPendingBacklog() (fifoCount, resourceMinutes int, err error) {
 
 	log.Debug("Pending backlog: fifoCount =", fifo, ", resourceMinutes =", minutes)
 	return int(fifo), int(minutes), nil
+}
+
+func UpdateResourceAwareOrdersToReady(status string) error {
+	return app.DB.Table("orders").
+		Where("status = ? AND eta <= ?", "PREPARING", time.Now()).
+		Updates(map[string]interface{}{"status": status}).Error
+}
+
+func ServeResourceAwareOrders(resource *pkg.Resources, orderId string) error {
+	return app.DB.Table("orders").
+		Where("order_id = ?", orderId).
+		Updates(map[string]interface{}{
+			"resource_id": resource.Id,
+			"status":      "SERVING",
+		}).Error
 }

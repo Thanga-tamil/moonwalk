@@ -39,7 +39,7 @@ const (
 	FIFO             = "FIFO"
 	RES_AWARE        = "RESOURCE AWARE"
 	FIFO_ETA_MINUTES = 1
-	SERVER           = "SERVER"
+	SUPPLIER         = "SUPPLIER"
 	CHEF             = "CHEF"
 )
 
@@ -89,7 +89,7 @@ func scheduler(dish pkg.Dish, resources *[]pkg.Resources, backlogMinutes int) pk
 }
 
 func fifoSchedule(dish pkg.Dish, resources *[]pkg.Resources, backlogMinutes int) pkg.Order {
-	servers := utils.Filter(*resources, SERVER)
+	servers := utils.Filter(*resources, SUPPLIER)
 	eta := time.Now().Add(time.Duration(backlogMinutes+FIFO_ETA_MINUTES) * time.Minute)
 
 	for _, s := range servers {
@@ -99,8 +99,9 @@ func fifoSchedule(dish pkg.Dish, resources *[]pkg.Resources, backlogMinutes int)
 		}
 	}
 
+	resourceId := 0
 	log.Infox("FIFO schedule: no idle server available, order queued")
-	return buildOrder(FIFO, utils.GetRandomUUID(), 0, dish.Id, eta)
+	return buildOrder(FIFO, utils.GetRandomUUID(), resourceId, dish.Id, eta)
 }
 
 func resourceAwareSchedule(dish pkg.Dish, resources *[]pkg.Resources, backlogMinutes int) pkg.Order {
@@ -117,14 +118,15 @@ func resourceAwareSchedule(dish pkg.Dish, resources *[]pkg.Resources, backlogMin
 		}
 	}
 
+	resourceId := 0
 	log.Infox("RESOURCE AWARE schedule: no idle chef available, order queued")
-	return buildOrder(RES_AWARE, utils.GetRandomUUID(), 0, dish.Id, eta)
+	return buildOrder(RES_AWARE, utils.GetRandomUUID(), resourceId, dish.Id, eta)
 }
 
-func buildOrder(alg, orderId string, resId, dishId int, eta time.Time) pkg.Order {
+func buildOrder(alg, orderId string, resourceId, dishId int, eta time.Time) pkg.Order {
 	return pkg.Order{
 		Eta:        eta,
-		ResourceId: resId,
+		ResourceId: resourceId,
 		DishId:     dishId,
 		Alg:        alg,
 		Status:     "PENDING",

@@ -57,7 +57,6 @@ type Resources struct {
 	Status            string    `gorm:"column:status" json:"chef_status"`
 	CreatedAt         time.Time `gorm:"column:created_at" json:"created_at"`
 	UpdatedAt         time.Time `gorm:"column:updated_at" json:"updated_at"`
-	Name              string    `gorm:"column:name" json:"name"`
 	OrderHandlingType bool      `json:"order_handling_type"`
 }
 
