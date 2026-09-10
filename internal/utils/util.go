@@ -13,7 +13,6 @@ import (
 )
 
 const (
-	LogFile    = "moonwalk.log"
 	ConfigFile = "config.json"
 )
 

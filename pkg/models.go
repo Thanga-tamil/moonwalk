@@ -8,6 +8,8 @@ type ServiceConfig struct {
 	SqlDriverName     string `json:"sqlDriverName"`
 	SqlDataSourceName string `json:"sqlDataSourceName"`
 	LogLevel          int    `json:"logLevel"` // 0 = ERROR, 1 = INFO, 2 = DEBUG, 3 = WARNING
+	LogFile           string `json:"logFile"`
+	LogWriteToFile    bool   `json:"logWriteToFile"`
 	ServerMode        string `json:"serverMode"`
 	CronInterval      int    `json:"cronInterval"` // seconds
 	// SchedulerStrategy selects which scheduling algorithm is used server-wide.

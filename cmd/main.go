@@ -24,9 +24,7 @@ func main() {
 
 	fmt.Println("Initializing custom Charmbracelet logger with logLevel:", conf.LogLevel)
 
-	// log.NewLogger(utils.LogFile, conf.LogLevel)
-
-	SetLogger(conf.LogLevel)
+	setLogger(conf.LogLevel, conf.LogWriteToFile, conf.LogFile)
 
 	fmt.Println("Custom Charmbracelet logger initialized successfully")
 
@@ -50,7 +48,7 @@ func main() {
 }
 
 /* Log levels 0 = ERROR | 1 = INFO | 2 = DEBUG | 3 = WARN */
-func SetLogger(logLevel int) {
+func setLogger(logLevel int, writeToFile bool, logFile string) {
 
 	var level log.Level
 
@@ -71,7 +69,10 @@ func SetLogger(logLevel int) {
 		Level:           level,
 		Formatter:       log.TextFormatter,
 		ReportTimestamp: true,
+		WriteToFile:     writeToFile,
+		FilePath:        logFile,
 	})
+
 }
 
 // serveAsync starts the HTTP server in the background and blocks until either
