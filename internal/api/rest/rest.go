@@ -27,7 +27,8 @@ func Serve(ADDR, serverMode string) (*http.Server, <-chan error) {
 
 	route.Router(v1Group)
 
-	log.Infox("Application started successfully. Serving HTTP request response @ '" + ADDR + "' | ServerMode: " + serverMode + "")
+	log.Infox("Application started successfully.", "ServerMode", serverMode)
+	log.Infox("Serving HTTP request response.", "@ADDRESS", ADDR)
 
 	httpServer := &http.Server{
 		Addr:         ADDR,

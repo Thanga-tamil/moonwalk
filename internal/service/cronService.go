@@ -22,7 +22,7 @@ const (
 var cronMu sync.Mutex
 
 func StartCronService(cronInterval time.Duration) {
-	log.Infox("Starting cron service with interval: ", cronInterval)
+	log.Infox("Starting cron service with", "TimeInterval", cronInterval)
 
 	ticker := time.NewTicker(cronInterval)
 
@@ -65,7 +65,7 @@ func processResourceAwareOrders() {
 	err := app.DB.Transaction(func(tx *gorm.DB) error {
 
 		updatedOrders, err := orderRepo.UpdateResourceAwareOrdersToReady(tx, READY, eta)
-		log.Infof("Cron: %d resource aware orders updated to READY", len(updatedOrders))
+		log.Debugf("Cron: %d resource aware orders updated to READY", len(updatedOrders))
 		if err != nil {
 			log.Error("Cron: error updating resource aware orders to READY:", err.Error())
 			return err
@@ -81,7 +81,7 @@ func processResourceAwareOrders() {
 			log.Error("Cron: error fetching resource aware orders:", err.Error())
 			return err
 		} else if len(orders) == 0 {
-			log.Info("Cron: no resource aware orders to process")
+			log.Debug("Cron: no resource aware orders to process")
 			return nil
 		}
 

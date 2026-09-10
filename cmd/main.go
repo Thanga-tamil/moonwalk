@@ -22,21 +22,11 @@ func main() {
 	// and init all the required services using the loaded config
 	conf := config.LoadConfig(utils.ConfigFile)
 
-	fmt.Println("Initializing custom Charmbracelet logger")
+	fmt.Println("Initializing custom Charmbracelet logger with logLevel:", conf.LogLevel)
 
 	// log.NewLogger(utils.LogFile, conf.LogLevel)
 
-	// l := log.New(log.Options{
-	// 	Level:           log.LevelDebug,
-	// 	Formatter:       log.TextFormatter,
-	// 	ReportTimestamp: true,
-	// })
-
-	log.Configure(log.Options{
-		Level:           log.LevelDebug,
-		Formatter:       log.TextFormatter,
-		ReportTimestamp: true,
-	})
+	SetLogger(conf.LogLevel)
 
 	fmt.Println("Custom Charmbracelet logger initialized successfully")
 
@@ -57,6 +47,31 @@ func main() {
 	service.StartCronService(cronInterval)
 
 	serveAsync(conf.ServerHost+":"+fmt.Sprint(conf.ServerPort), conf.ServerMode)
+}
+
+/* Log levels 0 = ERROR | 1 = INFO | 2 = DEBUG | 3 = WARN */
+func SetLogger(logLevel int) {
+
+	var level log.Level
+
+	switch logLevel {
+	case 0:
+		level = log.LevelError
+	case 1:
+		level = log.LevelInfo
+	case 2:
+		level = log.LevelDebug
+	case 3:
+		level = log.LevelWarn
+	default:
+		level = log.LevelInfo
+	}
+
+	log.Configure(log.Options{
+		Level:           level,
+		Formatter:       log.TextFormatter,
+		ReportTimestamp: true,
+	})
 }
 
 // serveAsync starts the HTTP server in the background and blocks until either
