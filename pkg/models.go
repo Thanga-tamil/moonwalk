@@ -3,6 +3,8 @@ package pkg
 import "time"
 
 type ServiceConfig struct {
+	ServerHost        string `json:"serverHost"`
+	ServerPort        int    `json:"serverPort"`
 	SqlDriverName     string `json:"sqlDriverName"`
 	SqlDataSourceName string `json:"sqlDataSourceName"`
 	LogLevel          string `json:"logLevel"`

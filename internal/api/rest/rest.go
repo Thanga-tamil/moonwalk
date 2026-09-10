@@ -1,13 +1,14 @@
 package rest
 
 import (
+	"moonwalk/internal/api/rest/route"
+	"moonwalk/internal/middleware"
 	"net/http"
 	"strings"
 	"time"
+
+	log "github.com/Thanga-tamil/logger_v2"
 	"github.com/gin-gonic/gin"
-	"moonwalk/internal/middleware"
-	"moonwalk/internal/api/rest/route"
-	log "github.com/Thanga-tamil/logger_lib"
 )
 
 // Serve starts and returns the HTTP server (and an error channel) so the caller
@@ -18,7 +19,7 @@ func Serve(ADDR, serverMode string) (*http.Server, <-chan error) {
 
 	serve := gin.New()
 
-	// Attach middlewares to GIN 
+	// Attach middlewares to GIN
 	serve.Use(middleware.LoggerChain())
 	serve.Use(gin.Recovery())
 
@@ -26,7 +27,7 @@ func Serve(ADDR, serverMode string) (*http.Server, <-chan error) {
 
 	route.Router(v1Group)
 
-	log.Infox("Application started successfully. Serving HTTP request response @ '", ADDR + "'")
+	log.Infox("Application started successfully. Serving HTTP request response @ '" + ADDR + "' | ServerMode: " + serverMode + "")
 
 	httpServer := &http.Server{
 		Addr:         ADDR,

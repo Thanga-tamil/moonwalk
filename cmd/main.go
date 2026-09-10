@@ -14,7 +14,7 @@ import (
 	"syscall"
 	"time"
 
-	log "github.com/Thanga-tamil/logger_lib"
+	log "github.com/Thanga-tamil/logger_v2"
 )
 
 func main() {
@@ -22,11 +22,23 @@ func main() {
 	// and init all the required services using the loaded config
 	conf := config.LoadConfig(utils.ConfigFile)
 
-	fmt.Println("Initializing custom zap logger")
+	fmt.Println("Initializing custom Charmbracelet logger")
 
-	log.NewLogger(utils.LogFile, conf.LogLevel)
+	// log.NewLogger(utils.LogFile, conf.LogLevel)
 
-	fmt.Println("Custom zap logger initialized successfully")
+	// l := log.New(log.Options{
+	// 	Level:           log.LevelDebug,
+	// 	Formatter:       log.TextFormatter,
+	// 	ReportTimestamp: true,
+	// })
+
+	log.Configure(log.Options{
+		Level:           log.LevelDebug,
+		Formatter:       log.TextFormatter,
+		ReportTimestamp: true,
+	})
+
+	fmt.Println("Custom Charmbracelet logger initialized successfully")
 
 	// apply the server-wide scheduling strategy from config before any
 	// request can be served
@@ -44,7 +56,7 @@ func main() {
 	cronInterval := time.Duration(conf.CronInterval) * time.Second
 	service.StartCronService(cronInterval)
 
-	serveAsync(utils.ServerAddr, conf.ServerMode)
+	serveAsync(conf.ServerHost+":"+fmt.Sprint(conf.ServerPort), conf.ServerMode)
 }
 
 // serveAsync starts the HTTP server in the background and blocks until either

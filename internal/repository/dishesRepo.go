@@ -4,7 +4,7 @@ import (
 	"moonwalk/internal/app"
 	"moonwalk/pkg"
 
-	log "github.com/Thanga-tamil/logger_lib"
+	log "github.com/Thanga-tamil/logger_v2"
 )
 
 func GetAllDishes(page, size int) ([]pkg.Dish, error) {

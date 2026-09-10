@@ -6,7 +6,7 @@ import (
 	"moonwalk/pkg"
 	"time"
 
-	log "github.com/Thanga-tamil/logger_lib"
+	log "github.com/Thanga-tamil/logger_v2"
 	"gorm.io/gorm"
 )
 

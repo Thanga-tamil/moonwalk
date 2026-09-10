@@ -4,7 +4,7 @@ import (
 	"net/http"
 	"time"
 
-	log "github.com/Thanga-tamil/logger_lib"
+	log "github.com/Thanga-tamil/logger_v2"
 	"github.com/gin-gonic/gin"
 
 	"moonwalk/internal/repository"

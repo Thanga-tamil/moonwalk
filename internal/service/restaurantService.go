@@ -6,7 +6,7 @@ import (
 	"strconv"
 	"time"
 
-	log "github.com/Thanga-tamil/logger_lib"
+	log "github.com/Thanga-tamil/logger_v2"
 	"github.com/gin-gonic/gin"
 	"gorm.io/gorm"
 
@@ -15,6 +15,9 @@ import (
 	"moonwalk/pkg"
 )
 
+// GetAvailableDishes function returns a list of available dishes
+// by retrieving statistics from the db. Assume unavailability
+// of dishes will be updated by the respective restaurants.
 func GetAllDishes(ctx *gin.Context, page, size int) {
 
 	// since the pagination handled in query itself, we can't get the

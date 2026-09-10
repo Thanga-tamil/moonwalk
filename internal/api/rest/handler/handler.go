@@ -4,8 +4,8 @@ import (
 	"moonwalk/internal/service"
 	"moonwalk/internal/utils"
 
+	log "github.com/Thanga-tamil/logger_v2"
 	"github.com/gin-gonic/gin"
-	log "github.com/Thanga-tamil/logger_lib"
 )
 
 // GetAvailableDishes function returns a list of available dishes
@@ -19,7 +19,8 @@ func GetAllDishes(ctx *gin.Context) {
 
 	if err != nil {
 		log.Error("Error while parsing integer from string:", err.Error())
-		service.WriteErr(ctx, err.Error()); return
+		service.WriteErr(ctx, err.Error())
+		return
 	}
 
 	service.GetAllDishes(ctx, page, size)
@@ -30,7 +31,8 @@ func PlaceOrder(ctx *gin.Context) {
 
 	if err != nil {
 		log.Error("Error while parsing place order input:", err.Error())
-		service.WriteErr(ctx, err.Error()); return
+		service.WriteErr(ctx, err.Error())
+		return
 	}
 
 	service.PlaceOrder(ctx, data)

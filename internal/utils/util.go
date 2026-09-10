@@ -7,13 +7,12 @@ import (
 	"moonwalk/pkg"
 	"strconv"
 
-	log "github.com/Thanga-tamil/logger_lib"
+	log "github.com/Thanga-tamil/logger_v2"
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 )
 
 const (
-	ServerAddr = "0.0.0.0:8080"
 	LogFile    = "moonwalk.log"
 	ConfigFile = "config.json"
 )
