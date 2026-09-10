@@ -159,7 +159,7 @@ func processPendingOrders() {
 		}
 
 		for _, o := range orders {
-			log.Debug("Cron: processing pending order: ", o.OrderId)
+			log.Debug("", "Cron: processing pending order: ", o.OrderId)
 
 			dish, err := orderRepo.GetDish(o.DishId)
 			if err != nil {
@@ -183,7 +183,7 @@ func processPendingOrders() {
 					status = "PREPARING"
 				}
 
-				log.Infox("Cron: assigning pending order", o.OrderId, "to resource", order.ResourceId)
+				log.Infofx("Cron: assigning pending orderId: %s to resource: %d", o.OrderId, order.ResourceId)
 				if err := orderRepo.UpdateOrderStatusAndResourceId(tx, o.OrderId, status, order.ResourceId); err != nil {
 					log.Error("Cron: error updating order status:", err.Error())
 					continue
@@ -203,7 +203,7 @@ func processPendingOrders() {
 	})
 
 	if err != nil {
-		log.Error("Cron: error processing pending orders:", err.Error())
+		log.Error("Cron: error processing pending orders", err.Error())
 	}
 }
 

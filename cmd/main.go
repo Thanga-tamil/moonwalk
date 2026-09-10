@@ -90,7 +90,7 @@ func serveAsync(addr, serverMode string) {
 			log.Error("HTTP server error:", err.Error())
 		}
 	case sig := <-quit:
-		log.Infox("Received shutdown signal", sig.String())
+		log.Infox("", "Received shutdown signal", sig.String())
 
 		ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 		defer cancel()

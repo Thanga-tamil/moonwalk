@@ -105,7 +105,7 @@ func GetPendingBacklog() (fifoCount, resourceMinutes int, err error) {
 		return 0, 0, err
 	}
 
-	log.Debug("Pending backlog: fifoCount = ", fifo, ", resourceMinutes = ", minutes)
+	log.Debugf("Pending backlog: fifoCount: %d resourceMinutes: %d ", fifo, minutes)
 	return int(fifo), int(minutes), nil
 }
 

@@ -120,7 +120,7 @@ func resourceAwareSchedule(dish pkg.Dish, resources *[]pkg.Resources, backlogMin
 	}
 
 	resourceId := 0
-	log.Infox("RESOURCE AWARE schedule: no idle chef available, order queued")
+	log.Info("RESOURCE AWARE schedule: no idle chef available, order queued")
 	return buildOrder(RES_AWARE, utils.GetRandomUUID(), resourceId, dish.Id, eta)
 }
 

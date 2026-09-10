@@ -10,7 +10,7 @@ import (
 func GetResources() (*[]pkg.Resources, error) {
 	var resources []pkg.Resources
 
-	if err := app.DB.Table("resources").Find(&resources).Order("updated_at ASC").Error; err != nil {
+	if err := app.DB.Table("resources").Where("status = ?", "IDLE").Find(&resources).Order("updated_at ASC").Error; err != nil {
 		return nil, err
 	}
 

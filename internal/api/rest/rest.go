@@ -21,13 +21,14 @@ func Serve(ADDR, serverMode string) (*http.Server, <-chan error) {
 
 	// Attach middlewares to GIN
 	serve.Use(middleware.LoggerChain())
+	serve.Use(middleware.TenantResolver())
 	serve.Use(gin.Recovery())
 
 	v1Group := serve.Group("/api/v1")
 
 	route.Router(v1Group)
 
-	log.Infox("Application started successfully.", "ServerMode", serverMode)
+	log.Infox("Server started successfully.", "ServerMode", serverMode)
 	log.Infox("Serving HTTP request response.", "@ADDRESS", ADDR)
 
 	httpServer := &http.Server{
