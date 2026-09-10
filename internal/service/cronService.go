@@ -23,28 +23,30 @@ var cronMu sync.Mutex
 
 func StartCronService(cronInterval time.Duration) {
 	log.Infox("Starting cron service with interval: ", cronInterval)
+
 	ticker := time.NewTicker(cronInterval)
-	var wg sync.WaitGroup
+
 	go func() {
+		defer ticker.Stop()
+
 		for range ticker.C {
 			if !cronMu.TryLock() {
 				log.Debug("Cron iteration skipped: previous iteration still running")
 				continue
 			}
+			var wg sync.WaitGroup
 
-			wg.Add(3)
-			go func() {
-				defer wg.Done()
+			wg.Go(func() {
 				processResourceAwareOrders()
-			}()
-			go func() {
-				defer wg.Done()
+			})
+			wg.Go(func() {
 				processCompletedOrders()
-			}()
-			go func() {
-				defer wg.Done()
+			})
+			wg.Go(func() {
 				processPendingOrders()
-			}()
+			})
+
+			wg.Wait()
 			cronMu.Unlock()
 		}
 	}()
