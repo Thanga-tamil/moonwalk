@@ -2,11 +2,13 @@ package service
 
 import (
 	"moonwalk/internal/repository"
+	orderRepo "moonwalk/internal/repository"
 	"moonwalk/internal/utils"
 	"moonwalk/pkg"
 	"time"
 
 	log "github.com/Thanga-tamil/logger_v2"
+
 	"gorm.io/gorm"
 )
 
@@ -82,46 +84,46 @@ func strategyForDish(dish pkg.Dish, force string) bool {
 // backlogMinutes is the estimated minutes of work already queued ahead of this
 // order (from GetPendingBacklog). It is added to the ETA so the countdown
 // reflects the current kitchen backlog, not just an empty kitchen.
-func scheduler(dish pkg.Dish, resources *[]pkg.Resources, backlogMinutes int) pkg.Order {
+func scheduler(dish pkg.Dish, resource *pkg.Resources, backlogMinutes int) pkg.Order {
 	if strategyForDish(dish, schedulerStrategy) {
-		return fifoSchedule(dish, resources, backlogMinutes)
+		return fifoSchedule(dish, resource, backlogMinutes)
 	}
-	return resourceAwareSchedule(dish, resources, backlogMinutes)
+	return resourceAwareSchedule(dish, resource, backlogMinutes)
 }
 
-func fifoSchedule(dish pkg.Dish, resources *[]pkg.Resources, backlogMinutes int) pkg.Order {
-	servers := utils.Filter(*resources, SUPPLIER)
+func fifoSchedule(dish pkg.Dish, supplier *pkg.Resources, backlogMinutes int) pkg.Order {
+	// servers := utils.Filter(*resource, SUPPLIER)
 	eta := time.Now().Add(time.Duration(backlogMinutes+FIFO_ETA_MINUTES) * time.Minute)
 
-	for _, s := range servers {
-		if s.Status == IDLE {
-			log.Infox("FIFO schedule: assigning order to server", s.Id, dish.Id)
-			return buildOrder(FIFO, utils.GetRandomUUID(), s.Id, dish.Id, eta)
-		}
+	if supplier.Status == IDLE {
+		log.Infox("FIFO schedule: assigning order to supplier", supplier.Id, dish.Id)
+	} else {
+		log.Infox("", "FIFO schedule: no idle supplier available, order queued to supplier", supplier.Id)
 	}
 
-	resourceId := 0
-	log.Infox("FIFO schedule: no idle server available, order queued")
-	return buildOrder(FIFO, utils.GetRandomUUID(), resourceId, dish.Id, eta)
+	return buildOrder(FIFO, utils.GetRandomUUID(), supplier.Id, dish.Id, eta)
 }
 
-func resourceAwareSchedule(dish pkg.Dish, resources *[]pkg.Resources, backlogMinutes int) pkg.Order {
-	chefs := utils.Filter(*resources, CHEF)
-	// dev in progress
+func resourceAwareSchedule(dish pkg.Dish, chef *pkg.Resources, backlogMinutes int) pkg.Order {
 	// Each RESOURCE AWARE order should be served by a server after compilation of cooking by a chef.
 	// So, the ETA should be calculated as the sum of backlogMinutes + dish.PrepTime + FIFO_ETA_MINUTES
-	eta := time.Now().Add(time.Duration(backlogMinutes+dish.PrepTime+FIFO_ETA_MINUTES) * time.Minute) //
 
-	for _, c := range chefs {
-		if c.Status == IDLE {
-			log.Infof("RESOURCE AWARE schedule: assigning order to chef: %d, dishId: %d", c.Id, dish.Id)
-			return buildOrder(RES_AWARE, utils.GetRandomUUID(), c.Id, dish.Id, eta)
+	var eta time.Time
+
+	if chef.Status == IDLE {
+		eta = time.Now().Add(time.Duration(backlogMinutes+dish.PrepTime+FIFO_ETA_MINUTES) * time.Minute)
+		log.Infof("RESOURCE AWARE schedule: assigning order to chef: %d, dishId: %d", chef.Id, dish.Id)
+	} else {
+		inProgressOrderByChef, err := orderRepo.FindChefInProgressOrder(chef.Id)
+		if err != nil {
+			log.Error("Error while fetching preparing orders for new order asigning:", err.Error())
+			panic(err) // todo
 		}
+		// eta = time.Now().Add(time.Duration(backlogMinutes+dish.PrepTime+FIFO_ETA_MINUTES) * time.Minute)
+		eta = inProgressOrderByChef.Eta.Add(time.Duration(backlogMinutes+dish.PrepTime+FIFO_ETA_MINUTES) * time.Minute)
+		log.Info("", "RESOURCE AWARE schedule: no idle chef available, order queued to chef", chef.Id)
 	}
-
-	resourceId := 0
-	log.Info("RESOURCE AWARE schedule: no idle chef available, order queued")
-	return buildOrder(RES_AWARE, utils.GetRandomUUID(), resourceId, dish.Id, eta)
+	return buildOrder(RES_AWARE, utils.GetRandomUUID(), chef.Id, dish.Id, eta)
 }
 
 func buildOrder(alg, orderId string, resourceId, dishId int, eta time.Time) pkg.Order {

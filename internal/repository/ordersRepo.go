@@ -9,8 +9,8 @@ import (
 	"gorm.io/gorm"
 )
 
-func Save(o *pkg.Order) error {
-	return app.DB.Table("orders").Create(o).Error
+func Insert(tx *gorm.DB, o *pkg.Order) error {
+	return tx.Table("orders").Create(o).Error
 }
 
 func GetPendingOrders() ([]pkg.Order, error) {
@@ -42,10 +42,10 @@ func GetOrder(orderId string) (pkg.Order, error) {
 	return order, nil
 }
 
-func GetPreparingOrdersPastETA(tx *gorm.DB) ([]pkg.Order, error) {
+func GetOrdersPastETA(tx *gorm.DB) ([]pkg.Order, error) {
 	var orders []pkg.Order
 
-	err := tx.Table("orders INDEXED BY i_status_eta").
+	err := tx.Table("orders").
 		Where("status in (?, ?) AND eta <= ?", "PROCESSING", "SERVING", time.Now()).
 		Find(&orders).Error
 
@@ -157,4 +157,21 @@ func UpdateResourceAwareOrdersStatusToServing(tx *gorm.DB, orderId string) error
 		Updates(map[string]interface{}{
 			"status": "SERVING",
 		}).Error
+}
+
+func FindChefInProgressOrder(resourceId int) (pkg.Order, error) {
+	var order pkg.Order
+
+	err := app.DB.Table("orders").
+		Where("resource_id = ?", resourceId).
+		Order("eta DESC").
+		Limit(1).
+		Find(&order).
+		Error
+
+	if err != nil {
+		return order, err
+	}
+
+	return order, nil
 }

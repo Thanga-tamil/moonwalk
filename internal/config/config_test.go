@@ -1,10 +1,10 @@
 package config
 
 import (
+	"moonwalk/pkg"
 	"os"
 	"path/filepath"
 	"testing"
-	"moonwalk/pkg"
 )
 
 func writeConfig(t *testing.T, contents string) string {
@@ -19,8 +19,8 @@ func writeConfig(t *testing.T, contents string) string {
 
 func TestLoadConfigAppliesDefaults(t *testing.T) {
 	path := writeConfig(t, `{
-		"sqlDriverName": "sqlite",
-		"sqlDataSourceName": "/tmp/test.db",
+		"sqlDriverName": "mysql",
+		"sqlDataSourceName": "root:password@tcp(127.0.0.1:3306)/moonwalk?charset=utf8mb4&parseTime=True&loc=Local",
 		"logLevel": "INFO",
 		"serverMode": "test"
 	}`)
@@ -40,8 +40,8 @@ func TestLoadConfigAppliesDefaults(t *testing.T) {
 
 func TestLoadConfigUsesProvidedStrategy(t *testing.T) {
 	path := writeConfig(t, `{
-		"sqlDriverName": "sqlite",
-		"sqlDataSourceName": "/tmp/test.db",
+		"sqlDriverName": "mysql",
+		"sqlDataSourceName": "root:password@tcp(127.0.0.1:3306)/moonwalk?charset=utf8mb4&parseTime=True&loc=Local",
 		"logLevel": "INFO",
 		"serverMode": "test",
 		"schedulerStrategy": "fifo",

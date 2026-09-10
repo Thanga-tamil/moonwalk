@@ -152,11 +152,12 @@ func processPendingOrders() {
 
 		utils.PrettyPrint("pending orders", orders)
 
-		resources, err := resourceRepo.GetResources()
-		if err != nil {
-			log.Error("Cron: error fetching resources:", err.Error())
-			return err
-		}
+		// resources, err := resourceRepo.GetResources()
+
+		// if err != nil {
+		// 	log.Error("Cron: error fetching resources:", err.Error())
+		// 	return err
+		// }
 
 		for _, o := range orders {
 			log.Debug("", "Cron: processing pending order: ", o.OrderId)
@@ -166,6 +167,11 @@ func processPendingOrders() {
 				log.Error("Cron: error fetching dish:", err.Error())
 				continue
 			}
+			resource, err := resourceRepo.FindResource(tx, dish.PreCooked)
+			if err != nil {
+				log.Error("Cron: error fetching resource:", err.Error())
+				continue
+			}
 
 			backlogMinutes, err := backlogFor(dish)
 			if err != nil {
@@ -173,9 +179,8 @@ func processPendingOrders() {
 				continue
 			}
 
-			order := scheduler(dish, resources, backlogMinutes)
-			if order.ResourceId > 0 {
-
+			order := scheduler(dish, resource, backlogMinutes)
+			if resource.Status == IDLE {
 				var status string
 				if order.Alg == FIFO {
 					status = "PROCESSING"
@@ -212,7 +217,7 @@ func processCompletedOrders() {
 
 	err := app.DB.Transaction(func(tx *gorm.DB) error {
 
-		orders, err := orderRepo.GetPreparingOrdersPastETA(tx)
+		orders, err := orderRepo.GetOrdersPastETA(tx)
 		if err != nil {
 			log.Error("Cron: error fetching completed orders:", err.Error())
 			return err

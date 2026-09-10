@@ -92,7 +92,7 @@ func PlaceOrder(ctx *gin.Context, data *pkg.PlaceOrderDto) {
 			return err
 		}
 
-		resources, err := repository.GetResources()
+		resource, err := repository.FindResource(tx, dish.PreCooked)
 
 		if err != nil {
 			WriteErr(ctx, err.Error())
@@ -106,27 +106,29 @@ func PlaceOrder(ctx *gin.Context, data *pkg.PlaceOrderDto) {
 			return err
 		}
 
-		order := scheduler(dish, resources, backlogMinutes)
-
-		if err := repository.Save(&order); err != nil {
-			WriteErr(ctx, err.Error())
-			return err
-		}
+		order := scheduler(dish, resource, backlogMinutes)
 
 		// persist the audit trail for the order creation step
 		recordExecution(tx, &order)
 
 		// if a resource is available, update the order status to PREPARING or PROCESSING
 		// based on algorithm and update the resource status to BUSY
-		if order.ResourceId > 0 {
+		log.Infox("resource: ", resource)
+		if resource.Status == IDLE {
 			if order.Alg == FIFO {
 				order.Status = "PROCESSING"
 			} else {
 				order.Status = "PREPARING"
 			}
+
 			repository.UpdateOrderStatus(tx, order.OrderId, order.Status, time.Time{})
 			repository.UpdateResourceStatus(tx, order.ResourceId, BUSY, order.OrderId)
 			recordExecution(tx, &order)
+		}
+		log.Infox("order: ", order)
+		if err := repository.Insert(tx, &order); err != nil {
+			WriteErr(ctx, err.Error())
+			return err
 		}
 
 		response := map[string]interface{}{

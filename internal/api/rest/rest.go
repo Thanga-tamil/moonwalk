@@ -21,8 +21,11 @@ func Serve(ADDR, serverMode string) (*http.Server, <-chan error) {
 
 	// Attach middlewares to GIN
 	serve.Use(middleware.LoggerChain())
+	log.Debugx("Attaching LoggerChain middleware to GIN")
 	serve.Use(middleware.TenantResolver())
+	log.Debugx("Attaching TenantResolver middleware to GIN")
 	serve.Use(gin.Recovery())
+	log.Infox("Middlewares attached to GIN successfull")
 
 	v1Group := serve.Group("/api/v1")
 

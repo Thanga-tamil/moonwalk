@@ -15,7 +15,7 @@ func Start(conf *pkg.ServiceConfig) error {
 
 	var err error
 
-	DB, err = config.NewSqlite(conf.SqlDriverName, conf.SqlDataSourceName,
+	DB, err = config.NewMySQL(conf.SqlDriverName, conf.SqlDataSourceName,
 		conf.DbMaxIdleConns, conf.DbMaxOpenConns, conf.DbConnMaxLifetime)
 	if err != nil {
 		return err
