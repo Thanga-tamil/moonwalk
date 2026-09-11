@@ -29,22 +29,21 @@ func StartCronService(cronInterval time.Duration, pendingOrdersBatchSize int) {
 				log.Debug("cron iteration skipped: previous iteration still running")
 				continue
 			}
-			var wg sync.WaitGroup
+			func() {
+				defer cronMu.Unlock()
 
-			wg.Go(func() {
-				handleResourceAwarePreparingOrders()
-				handleResourceAwareReadyOrdersBySupplier()
-				handleResourceAwareServingOrders()
-			})
-			wg.Go(func() {
-				handlePendingOrders(pendingOrdersBatchSize)
-			})
-			wg.Go(func() {
-				handlFifoProcessingOrders()
-			})
+				var wg sync.WaitGroup
 
-			wg.Wait()
-			cronMu.Unlock()
+				wg.Go(handleResourceAwarePreparingOrders)
+				wg.Go(handleResourceAwareReadyOrdersBySupplier)
+				wg.Go(handleResourceAwareServingOrders)
+				wg.Go(func() {
+					handlePendingOrders(pendingOrdersBatchSize)
+				})
+				wg.Go(handlFifoProcessingOrders)
+
+				wg.Wait()
+			}()
 		}
 	}()
 }
@@ -57,26 +56,22 @@ func handleResourceAwarePreparingOrders() {
 		currentStatus := PREPARING
 		nextStatus := READY
 		eta := time.Now().Add(time.Minute)
-		orders, err := ordersRepo.UpdateResourceAwareOrdersStatusByETA(tx, alg, currentStatus, nextStatus, eta)
+		orders, orderIds, err := ordersRepo.UpdateResourceAwareOrdersStatusByETA(tx, alg, currentStatus, nextStatus, eta)
 		if err != nil {
 			return err
 		}
 
-		orderIds := []string{}
-		for _, o := range *orders {
-			orderIds = append(orderIds, o.OrderId)
-		}
-
 		status := IDLE
-		updatedChefCount, err := chefsRepo.UpdateChefStatus(tx, status, orderIds)
+		updatedChefCount, err := chefsRepo.UpdateChefStatus(tx, status, *orderIds)
 		if err != nil {
 			return err
 		}
 		log.Debugf("%d chef status updated to 'IDLE'", updatedChefCount)
 
 		// audit order status 'READY' transition
+		resourceType := CHEF
 		for _, o := range *orders {
-			recordExecution(tx, &o)
+			recordExecution(tx, &o, resourceType)
 		}
 
 		return nil
@@ -107,6 +102,7 @@ func handleResourceAwareReadyOrdersBySupplier() {
 		if err != nil {
 			return err
 		}
+		log.Debugx("suppliers: ", suppliers)
 
 		n := int(math.Min(float64(ordersCount), float64(suppliersCount)))
 
@@ -124,8 +120,9 @@ func handleResourceAwareReadyOrdersBySupplier() {
 				ordersRepo.UpdateOrder(tx, &o)
 
 				// audit order status 'SERVING' transition
+				resourceType := SUPPLIER
 				o.ResourceId = supplier.Id
-				recordExecution(tx, &o)
+				recordExecution(tx, &o, resourceType)
 
 				supplier.Status = BUSY
 				supplier.UpdatedAt = time.Now()
@@ -152,16 +149,19 @@ func handleResourceAwareServingOrders() {
 		nextStatus := SERVED
 		eta := time.Now()
 
-		orders, err := ordersRepo.UpdateResourceAwareOrdersStatusByETA(tx, alg, currentStatus, nextStatus, eta)
+		orders, orderIds, err := ordersRepo.UpdateResourceAwareOrdersStatusByETA(tx, alg, currentStatus, nextStatus, eta)
 		if err != nil {
 			return err
 		} else if len(*orders) == 0 {
 			return nil
 		}
+		status := IDLE
+		chefsRepo.UpdateSupplierStatus(tx, orderIds, status)
 
+		resourceType := CHEF
 		// audit order status 'SERVED' transition
 		for _, o := range *orders {
-			recordExecution(tx, &o)
+			recordExecution(tx, &o, resourceType)
 		}
 
 		return nil
@@ -200,7 +200,8 @@ func handlePendingOrders(pendingOrdersBatchSize int) {
 					}
 
 					// audit order status 'PROCESSING' transition
-					recordExecution(tx, &o)
+					resourceType := SUPPLIER
+					recordExecution(tx, &o, resourceType)
 
 					supplier.Status = BUSY
 					supplier.UpdatedAt = time.Now()
@@ -222,7 +223,8 @@ func handlePendingOrders(pendingOrdersBatchSize int) {
 					}
 
 					// audit order status 'PREPARING' transition
-					recordExecution(tx, &o)
+					resourceType := CHEF
+					recordExecution(tx, &o, resourceType)
 
 					chef.Status = BUSY
 					chef.UpdatedAt = time.Now()
@@ -258,7 +260,8 @@ func handlFifoProcessingOrders() {
 		for _, o := range *orders {
 			o.Status = nextStatus
 			o.UpdatedAt = time.Now()
-			recordExecution(tx, &o)
+			resourceType := SUPPLIER
+			recordExecution(tx, &o, resourceType)
 		}
 
 		status := IDLE

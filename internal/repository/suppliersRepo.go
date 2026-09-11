@@ -26,7 +26,7 @@ func FindResourceAwareHandlingSuppliers(tx *gorm.DB) ([]pkg.Suppliers, error) {
 
 	err := tx.Table("suppliers").
 		Where("order_handling_type = ?", true).
-		Order("order_completion_time ASC").Limit(1).Find(&suppliers).Error
+		Order("order_completion_time ASC").Find(&suppliers).Error
 
 	if err != nil {
 		return nil, err

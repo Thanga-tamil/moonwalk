@@ -12,7 +12,7 @@ import (
 // recordExecution persists an audit entry for a single order status transition
 // every time an order changes state (PENDING -> PREPARING -> SERVED). This is
 // the audit trail required by the problem statement.
-func recordExecution(tx *gorm.DB, o *pkg.Order) {
+func recordExecution(tx *gorm.DB, o *pkg.Order, resourceType string) {
 	timeEstimated := int64(o.Eta.Sub(o.CreatedAt).Seconds())
 	if timeEstimated < 0 {
 		timeEstimated = 0
@@ -30,6 +30,7 @@ func recordExecution(tx *gorm.DB, o *pkg.Order) {
 		TimeElapsed:   int(timeElapsed),
 		ResourceId:    o.ResourceId,
 		CreatedAt:     time.Now(),
+		ResourceType:  resourceType,
 	})
 }
 

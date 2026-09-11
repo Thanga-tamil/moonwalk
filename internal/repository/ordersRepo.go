@@ -35,7 +35,7 @@ func UpdateOrder(tx *gorm.DB, order *pkg.Order) error {
 }
 
 // update order status and return the updated records for audit transition
-func UpdateResourceAwareOrdersStatusByETA(tx *gorm.DB, alg, currentStatus, nextStatus string, eta time.Time) (*[]pkg.Order, error) {
+func UpdateResourceAwareOrdersStatusByETA(tx *gorm.DB, alg, currentStatus, nextStatus string, eta time.Time) (*[]pkg.Order, *[]string, error) {
 	var orders []pkg.Order
 
 	err := tx.Table("orders").
@@ -43,7 +43,7 @@ func UpdateResourceAwareOrdersStatusByETA(tx *gorm.DB, alg, currentStatus, nextS
 		Find(&orders).Error
 
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
 	ids := []string{}
@@ -59,7 +59,7 @@ func UpdateResourceAwareOrdersStatusByETA(tx *gorm.DB, alg, currentStatus, nextS
 		})
 
 	if result.Error != nil {
-		return nil, result.Error
+		return nil, nil, result.Error
 	}
 
 	if result.RowsAffected > 0 {
@@ -70,10 +70,10 @@ func UpdateResourceAwareOrdersStatusByETA(tx *gorm.DB, alg, currentStatus, nextS
 
 	err = tx.Table("orders").Where("order_id IN ?", ids).Find(&orders).Error
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
-	return &orders, nil
+	return &orders, &ids, nil
 }
 
 func FetchResourceAwareOrdersByStatus(tx *gorm.DB, status string) ([]pkg.Order, error) {

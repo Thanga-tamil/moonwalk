@@ -76,6 +76,7 @@ type OrderExec struct {
 	TimeElapsed   int       `gorm:"column:time_elapsed" json:"time_elapsed"`     // seconds
 	ResourceId    int       `gorm:"column:resource_id" json:"resource_id"`
 	CreatedAt     time.Time `gorm:"column:created_at" json:"created_at"`
+	ResourceType  string    `gorm:"column:resource_type" json:"resource_type"`
 }
 
 // TimerDto is the payload returned by the countdown timer endpoint. It exposes

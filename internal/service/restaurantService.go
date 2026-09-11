@@ -157,7 +157,8 @@ func handleResourceAwareOrder(tx *gorm.DB, chef *pkg.Chefs, dish *pkg.Dish) (*pk
 	order := resourceAwareEtaScheduler(dish, chef)
 
 	// audit pending status of the order
-	recordExecution(tx, &order)
+	resourceType := CHEF
+	recordExecution(tx, &order, resourceType)
 	if err := ordersRepo.Insert(tx, &order); err != nil {
 		return nil, err
 	}
@@ -168,7 +169,8 @@ func handleResourceAwareOrder(tx *gorm.DB, chef *pkg.Chefs, dish *pkg.Dish) (*pk
 		ordersRepo.UpdateOrder(tx, &order)
 
 		// audit preparing status of the order
-		recordExecution(tx, &order)
+		resourceType := CHEF
+		recordExecution(tx, &order, resourceType)
 	}
 
 	if chef.Status == IDLE {
@@ -187,7 +189,8 @@ func handlePreCookedOrder(tx *gorm.DB, supplier *pkg.Suppliers, dish *pkg.Dish) 
 	order := fifoEtaScheduler(dish, supplier)
 
 	// audit pending status of the order
-	recordExecution(tx, &order)
+	resourceType := SUPPLIER
+	recordExecution(tx, &order, resourceType)
 	if err := ordersRepo.Insert(tx, &order); err != nil {
 		return nil, err
 	}
@@ -201,7 +204,8 @@ func handlePreCookedOrder(tx *gorm.DB, supplier *pkg.Suppliers, dish *pkg.Dish) 
 		}
 
 		// audit preparing status of the order
-		recordExecution(tx, &order)
+		resourceType := SUPPLIER
+		recordExecution(tx, &order, resourceType)
 	}
 
 	if supplier.Status == IDLE {
