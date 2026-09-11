@@ -35,7 +35,9 @@ func StartCronService(cronInterval time.Duration) {
 				handleResourceAwarePreparingOrders()
 				handleResourceAwareReadyOrdersBySupplier()
 				handleResourceAwareServingOrders()
-				handleResourceAwarePendingOrders()
+			})
+			wg.Go(func() {
+				handlePendingOrders()
 			})
 			wg.Go(func() {
 				handlFifoProcessingOrders()
@@ -159,7 +161,7 @@ func handleResourceAwareServingOrders() {
 	}
 }
 
-func handleResourceAwarePendingOrders() {
+func handlePendingOrders() {
 	log.Info("handling resource aware pending orders")
 	err := app.DB.Transaction(func(tx *gorm.DB) error {
 
@@ -182,7 +184,11 @@ func handleResourceAwarePendingOrders() {
 				return err
 			}
 			if chef.Status == IDLE {
-				o.Status = PREPARING
+				if o.ResourceType == SUPPLIER {
+					o.Status = PROCESSING
+				} else {
+					o.Status = PREPARING
+				}
 				o.UpdatedAt = time.Now()
 				if err = ordersRepo.UpdateOrder(tx, &o); err != nil {
 					return err
