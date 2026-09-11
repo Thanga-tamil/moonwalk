@@ -34,3 +34,18 @@ func FindResourceAwareHandlingSuppliers(tx *gorm.DB) (*[]pkg.Suppliers, error) {
 
 	return &suppliers, nil
 }
+
+func UpdateSupplierStatus(tx *gorm.DB, orderIds []string, status string) (int64, error) {
+
+	suppliers := tx.Table("suppliers").
+		Where("current_order_id IN ?", orderIds).
+		Updates(map[string]interface{}{
+			"status": status,
+		})
+
+	if suppliers.Error != nil {
+		return 0, suppliers.Error
+	}
+
+	return suppliers.RowsAffected, nil
+}

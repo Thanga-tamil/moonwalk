@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"moonwalk/internal/app"
+	chefsRepo "moonwalk/internal/repository"
 	ordersRepo "moonwalk/internal/repository"
 	suppliersRepo "moonwalk/internal/repository"
 	"moonwalk/pkg"
@@ -34,6 +35,7 @@ func StartCronService(cronInterval time.Duration) {
 				handleResourceAwarePreparingOrders()
 				handleResourceAwareReadyOrdersBySupplier()
 				handleResourceAwareServingOrders()
+				handleResourceAwarePendingOrders()
 			})
 			wg.Go(func() {
 				handlFifoProcessingOrders()
@@ -57,6 +59,18 @@ func handleResourceAwarePreparingOrders() {
 		if err != nil {
 			return err
 		}
+
+		orderIds := []string{}
+		for _, o := range *orders {
+			orderIds = append(orderIds, o.OrderId)
+		}
+
+		status := IDLE
+		updatedChefCount, err := chefsRepo.UpdateChefStatus(tx, status, orderIds)
+		if err != nil {
+			return err
+		}
+		log.Debugf("%d chef status updated to 'IDLE'", updatedChefCount)
 
 		// audit order status 'READY' transition
 		for _, o := range *orders {
@@ -82,7 +96,7 @@ func handleResourceAwareReadyOrdersBySupplier() {
 			return err
 		}
 		if ordersCount == 0 {
-			log.Info("No resource aware 'preparing' order found to process 'READY' state")
+			log.Debug("No resource aware 'preparing' order found to process 'READY' state")
 			return nil
 		}
 
@@ -128,7 +142,7 @@ func handleResourceAwareServingOrders() {
 		if err != nil {
 			return err
 		} else if len(*orders) == 0 {
-			log.Infof("No resource aware 'serving' order found process to 'served' state")
+			log.Debug("No resource aware 'serving' order found process to 'served' state")
 			return nil
 		}
 
@@ -145,7 +159,78 @@ func handleResourceAwareServingOrders() {
 	}
 }
 
+func handleResourceAwarePendingOrders() {
+	log.Info("handling resource aware pending orders")
+	err := app.DB.Transaction(func(tx *gorm.DB) error {
+
+		log.Warn(".........................")
+
+		status := PENDING
+		orders, err := ordersRepo.FetchPendingResourceAwareOrders(tx, status)
+		log.Warnx("orders: ", orders)
+		ordersCount := len(orders)
+		if err != nil {
+			return err
+		} else if ordersCount == 0 {
+			log.Info("No pending state order found")
+			return nil
+		}
+
+		for _, o := range orders {
+			chef, err := chefsRepo.FindChefByResourceId(tx, o.ResourceId)
+			if err != nil {
+				return err
+			}
+			if chef.Status == IDLE {
+				o.Status = PREPARING
+				o.UpdatedAt = time.Now()
+				if err = ordersRepo.UpdateOrder(tx, &o); err != nil {
+					return err
+				}
+
+				// audit order status 'PREPARING' transition
+				recordExecution(tx, &o)
+
+				chef.Status = BUSY
+				chef.UpdatedAt = time.Now()
+				chef.CurrentOrderID = o.OrderId
+				if err = chefsRepo.UpdateChef(tx, chef); err != nil {
+					return err
+				}
+			}
+		}
+
+		return nil
+	})
+	if err != nil {
+		log.Errorx(err.Error())
+	}
+}
+
 func handlFifoProcessingOrders() {
 	log.Info("handling fifo processing orders")
+	err := app.DB.Transaction(func(tx *gorm.DB) error {
 
+		alg := FIFO
+		eta := time.Now()
+		currentStatus := PROCESSING
+		nextStatus := SERVED
+
+		orderIds, err := ordersRepo.UpdateFifoProcessingOrders(tx, alg, currentStatus, nextStatus, eta)
+		if err != nil {
+			return err
+		}
+		status := IDLE
+		updatedSuppliers, err := suppliersRepo.UpdateSupplierStatus(tx, orderIds, status)
+		if err != nil {
+			return err
+		}
+		log.Debugf("%d supplier status updated to 'IDLE'", updatedSuppliers)
+
+		return nil
+	})
+
+	if err != nil {
+		log.Errorx(err.Error())
+	}
 }

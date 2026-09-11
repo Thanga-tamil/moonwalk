@@ -45,10 +45,12 @@ const (
 	SUPPLIER = "SUPPLIER"
 	CHEF     = "CHEF"
 
-	PREPARING = "PREPARING"
-	READY     = "READY"
-	SERVING   = "SERVING"
-	SERVED    = "SERVED"
+	PROCESSING = "PROCESSING"
+	PREPARING  = "PREPARING"
+	PENDING    = "PENDING"
+	READY      = "READY"
+	SERVING    = "SERVING"
+	SERVED     = "SERVED"
 )
 
 // schedulerStrategy holds the server-wide strategy loaded from config. It is
