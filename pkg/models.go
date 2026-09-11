@@ -14,7 +14,6 @@ type ServiceConfig struct {
 	CronInterval           int    `json:"cronInterval"` // seconds
 	DbMaxIdleConns         int    `json:"dbMaxIdleConns"`
 	DbMaxOpenConns         int    `json:"dbMaxOpenConns"`
-	DbConnMaxLifetime      int    `json:"dbConnMaxLifetime"` // seconds
 	PendingOrdersBatchSize int    `json:"batchSize"`
 }
 

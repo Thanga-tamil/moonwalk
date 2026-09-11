@@ -16,7 +16,7 @@ func Start(conf *pkg.ServiceConfig) error {
 	var err error
 
 	DB, err = config.NewMySQL(conf.SqlDriverName, conf.SqlDataSourceName,
-		conf.DbMaxIdleConns, conf.DbMaxOpenConns, conf.DbConnMaxLifetime)
+		conf.DbMaxIdleConns, conf.DbMaxOpenConns)
 	if err != nil {
 		return err
 	}

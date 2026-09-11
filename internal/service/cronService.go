@@ -165,7 +165,6 @@ func handlePendingOrders(pendingOrdersBatchSize int) {
 	log.Info("handling resource aware pending orders")
 	err := app.DB.Transaction(func(tx *gorm.DB) error {
 
-		log.Infox("", "pendingOrdersBatchSize: ", pendingOrdersBatchSize)
 		status := PENDING
 		orders, err := ordersRepo.FetchPendingResourceAwareOrders(tx, status, pendingOrdersBatchSize)
 		log.Warnx("orders: ", orders)
