@@ -34,13 +34,20 @@ func recordExecution(tx *gorm.DB, o *pkg.Order) {
 }
 
 const (
-	IDLE             = "IDLE"
-	BUSY             = "BUSY"
-	FIFO             = "FIFO"
-	RES_AWARE        = "RESOURCE AWARE"
 	FIFO_ETA_MINUTES = 1
-	SUPPLIER         = "SUPPLIER"
-	CHEF             = "CHEF"
+
+	IDLE = "IDLE"
+	BUSY = "BUSY"
+
+	FIFO      = "FIFO"
+	RES_AWARE = "RESOURCE AWARE"
+
+	SUPPLIER = "SUPPLIER"
+	CHEF     = "CHEF"
+
+	PREPARING = "PREPARING"
+	READY     = "READY"
+	SERVING   = "SERVING"
 )
 
 // schedulerStrategy holds the server-wide strategy loaded from config. It is
