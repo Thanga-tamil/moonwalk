@@ -16,3 +16,9 @@ func RecordExecution(tx *gorm.DB, e *pkg.OrderExec) {
 		log.Error("Error recording order execution audit:", err.Error())
 	}
 }
+
+func RecordExecutions(tx *gorm.DB, e *[]pkg.OrderExec) {
+	if err := tx.Table("order_exec").Create(e).Error; err != nil {
+		log.Error("Error recording order execution audit:", err.Error())
+	}
+}

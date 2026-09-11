@@ -34,6 +34,39 @@ func recordExecution(tx *gorm.DB, o *pkg.Order, resourceType string) {
 	})
 }
 
+func recordExecutions(tx *gorm.DB, orders *[]pkg.Order, resourceType string) {
+
+	var execs []pkg.OrderExec
+
+	for _, o := range *orders {
+		timeEstimated := int64(o.Eta.Sub(o.CreatedAt).Seconds())
+		if timeEstimated < 0 {
+			timeEstimated = 0
+		}
+		timeElapsed := int64(time.Since(o.CreatedAt).Seconds())
+		if timeElapsed < 0 {
+			timeElapsed = 0
+		}
+		audit := &pkg.OrderExec{
+			OrderId:       o.OrderId,
+			Status:        o.Status,
+			Algorithm:     o.Alg,
+			TimeEstimated: int(timeEstimated),
+			TimeElapsed:   int(timeElapsed),
+			ResourceId:    o.ResourceId,
+			CreatedAt:     time.Now(),
+			ResourceType:  resourceType,
+		}
+		execs = append(execs, *audit)
+
+	}
+
+	if len(execs) > 0 {
+		repository.RecordExecutions(tx, &execs)
+	}
+
+}
+
 const (
 	FIFO_ETA_MINUTES = 1
 

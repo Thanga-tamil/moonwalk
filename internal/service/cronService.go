@@ -70,9 +70,7 @@ func handleResourceAwarePreparingOrders() {
 
 		// audit order status 'READY' transition
 		resourceType := CHEF
-		for _, o := range *orders {
-			recordExecution(tx, &o, resourceType)
-		}
+		recordExecutions(tx, orders, resourceType)
 
 		return nil
 	})
@@ -158,11 +156,9 @@ func handleResourceAwareServingOrders() {
 		status := IDLE
 		chefsRepo.UpdateSupplierStatus(tx, orderIds, status)
 
-		resourceType := CHEF
 		// audit order status 'SERVED' transition
-		for _, o := range *orders {
-			recordExecution(tx, &o, resourceType)
-		}
+		resourceType := CHEF
+		recordExecutions(tx, orders, resourceType)
 
 		return nil
 	})
@@ -257,12 +253,12 @@ func handlFifoProcessingOrders() {
 			return err
 		}
 
-		for _, o := range *orders {
-			o.Status = nextStatus
-			o.UpdatedAt = time.Now()
-			resourceType := SUPPLIER
-			recordExecution(tx, &o, resourceType)
+		for i, _ := range *orders {
+			(*orders)[i].Status = nextStatus
+			(*orders)[i].UpdatedAt = time.Now()
 		}
+		resourceType := SUPPLIER
+		recordExecutions(tx, orders, resourceType)
 
 		status := IDLE
 		updatedSuppliers, err := suppliersRepo.UpdateSupplierStatus(tx, orderIds, status)
