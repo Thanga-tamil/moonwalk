@@ -3,31 +3,20 @@ package pkg
 import "time"
 
 type ServiceConfig struct {
-	ServerHost        string `json:"serverHost"`
-	ServerPort        int    `json:"serverPort"`
-	SqlDriverName     string `json:"sqlDriverName"`
-	SqlDataSourceName string `json:"sqlDataSourceName"`
-	LogLevel          int    `json:"logLevel"` // 0 = ERROR, 1 = INFO, 2 = DEBUG, 3 = WARNING
-	LogFile           string `json:"logFile"`
-	LogWriteToFile    bool   `json:"logWriteToFile"`
-	ServerMode        string `json:"serverMode"`
-	CronInterval      int    `json:"cronInterval"` // seconds
-	// SchedulerStrategy selects which scheduling algorithm is used server-wide.
-	// Supported values: "auto", "fifo", "resource_aware". Defaults to "auto"
-	// which picks per dish (FIFO for pre-cooked, resource-aware otherwise).
-	SchedulerStrategy string `json:"schedulerStrategy"`
-	// Database pool tuning for long-running server operation.
-	DbMaxIdleConns    int `json:"dbMaxIdleConns"`
-	DbMaxOpenConns    int `json:"dbMaxOpenConns"`
-	DbConnMaxLifetime int `json:"dbConnMaxLifetime"` // seconds
+	ServerHost             string `json:"serverHost"`
+	ServerPort             int    `json:"serverPort"`
+	SqlDriverName          string `json:"sqlDriverName"`
+	SqlDataSourceName      string `json:"sqlDataSourceName"`
+	LogLevel               int    `json:"logLevel"` // 0 = ERROR, 1 = INFO, 2 = DEBUG, 3 = WARNING
+	LogFile                string `json:"logFile"`
+	LogWriteToFile         bool   `json:"logWriteToFile"`
+	ServerMode             string `json:"serverMode"`
+	CronInterval           int    `json:"cronInterval"` // seconds
+	DbMaxIdleConns         int    `json:"dbMaxIdleConns"`
+	DbMaxOpenConns         int    `json:"dbMaxOpenConns"`
+	DbConnMaxLifetime      int    `json:"dbConnMaxLifetime"` // seconds
+	PendingOrdersBatchSize int    `json:"batchSize"`
 }
-
-// Scheduler strategy identifiers
-const (
-	StrategyAuto          = "auto"
-	StrategyFIFO          = "fifo"
-	StrategyResourceAware = "resource_aware"
-)
 
 type Dish struct {
 	Id          int       `json:"id"`

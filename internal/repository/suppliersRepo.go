@@ -49,3 +49,15 @@ func UpdateSupplierStatus(tx *gorm.DB, orderIds []string, status string) (int64,
 
 	return suppliers.RowsAffected, nil
 }
+
+func FindSupplierByResourceId(tx *gorm.DB, resourceId int) (*pkg.Suppliers, error) {
+	var supplier pkg.Suppliers
+
+	err := tx.Table("suppliers").Where("id = ?", resourceId).Find(&supplier).Error
+
+	if err != nil {
+		return nil, err
+	}
+
+	return &supplier, nil
+}

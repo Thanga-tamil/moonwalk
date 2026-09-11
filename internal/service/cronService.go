@@ -17,7 +17,7 @@ import (
 
 var cronMu sync.Mutex
 
-func StartCronService(cronInterval time.Duration) {
+func StartCronService(cronInterval time.Duration, pendingOrdersBatchSize int) {
 	log.Infox("Starting cron service with", "TimeInterval", cronInterval)
 
 	ticker := time.NewTicker(cronInterval)
@@ -37,7 +37,7 @@ func StartCronService(cronInterval time.Duration) {
 				handleResourceAwareServingOrders()
 			})
 			wg.Go(func() {
-				handlePendingOrders()
+				handlePendingOrders(pendingOrdersBatchSize)
 			})
 			wg.Go(func() {
 				handlFifoProcessingOrders()
@@ -161,14 +161,13 @@ func handleResourceAwareServingOrders() {
 	}
 }
 
-func handlePendingOrders() {
+func handlePendingOrders(pendingOrdersBatchSize int) {
 	log.Info("handling resource aware pending orders")
 	err := app.DB.Transaction(func(tx *gorm.DB) error {
 
-		log.Warn(".........................")
-
+		log.Infox("", "pendingOrdersBatchSize: ", pendingOrdersBatchSize)
 		status := PENDING
-		orders, err := ordersRepo.FetchPendingResourceAwareOrders(tx, status)
+		orders, err := ordersRepo.FetchPendingResourceAwareOrders(tx, status, pendingOrdersBatchSize)
 		log.Warnx("orders: ", orders)
 		ordersCount := len(orders)
 		if err != nil {
@@ -179,29 +178,49 @@ func handlePendingOrders() {
 		}
 
 		for _, o := range orders {
-			chef, err := chefsRepo.FindChefByResourceId(tx, o.ResourceId)
-			if err != nil {
-				return err
-			}
-			if chef.Status == IDLE {
-				if o.ResourceType == SUPPLIER {
-					o.Status = PROCESSING
-				} else {
-					o.Status = PREPARING
-				}
-				o.UpdatedAt = time.Now()
-				if err = ordersRepo.UpdateOrder(tx, &o); err != nil {
+			if o.ResourceType == SUPPLIER {
+				o.Status = PROCESSING
+				supplier, err := suppliersRepo.FindSupplierByResourceId(tx, o.ResourceId)
+				if err != nil {
 					return err
 				}
+				if supplier.Status == IDLE {
+					o.UpdatedAt = time.Now()
+					if err = ordersRepo.UpdateOrder(tx, &o); err != nil {
+						return err
+					}
 
-				// audit order status 'PREPARING' transition
-				recordExecution(tx, &o)
+					// audit order status 'PROCESSING' transition
+					recordExecution(tx, &o)
 
-				chef.Status = BUSY
-				chef.UpdatedAt = time.Now()
-				chef.CurrentOrderID = o.OrderId
-				if err = chefsRepo.UpdateChef(tx, chef); err != nil {
+					supplier.Status = BUSY
+					supplier.UpdatedAt = time.Now()
+					supplier.CurrentOrderID = o.OrderId
+					if err = suppliersRepo.UpdateSupplier(tx, supplier); err != nil {
+						return err
+					}
+				}
+			} else {
+				o.Status = PREPARING
+				chef, err := chefsRepo.FindChefByResourceId(tx, o.ResourceId)
+				if err != nil {
 					return err
+				}
+				if chef.Status == IDLE {
+					o.UpdatedAt = time.Now()
+					if err = ordersRepo.UpdateOrder(tx, &o); err != nil {
+						return err
+					}
+
+					// audit order status 'PREPARING' transition
+					recordExecution(tx, &o)
+
+					chef.Status = BUSY
+					chef.UpdatedAt = time.Now()
+					chef.CurrentOrderID = o.OrderId
+					if err = chefsRepo.UpdateChef(tx, chef); err != nil {
+						return err
+					}
 				}
 			}
 		}

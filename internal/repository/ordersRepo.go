@@ -116,10 +116,16 @@ func UpdateFifoProcessingOrders(tx *gorm.DB, alg, currentStatus, nextStatus stri
 	return ids, nil
 }
 
-func FetchPendingResourceAwareOrders(tx *gorm.DB, status string) ([]pkg.Order, error) {
+func FetchPendingResourceAwareOrders(tx *gorm.DB, status string, batchSize int) ([]pkg.Order, error) {
 	var orders []pkg.Order
 
-	err := tx.Table("orders").Where("status = ?", status).Find(&orders).Order("ORDER BY eta ASC").Error
+	err := tx.Table("orders").
+		Where("status = ?", status).
+		Find(&orders).
+		Order("ORDER BY eta ASC").
+		Limit(batchSize).
+		Error
+
 	if err != nil {
 		return nil, err
 	}

@@ -28,10 +28,6 @@ func main() {
 
 	fmt.Println("Custom Charmbracelet logger initialized successfully")
 
-	// apply the server-wide scheduling strategy from config before any
-	// request can be served
-	service.SetSchedulerStrategy(conf.SchedulerStrategy)
-
 	if err := app.Start(conf); err != nil {
 		// try one recovery for the collective good,
 		// upon more than one failure startup, stop
@@ -42,7 +38,7 @@ func main() {
 	// start the background cron service handling order
 	// completion and pending order re-scheduling
 	cronInterval := time.Duration(conf.CronInterval) * time.Second
-	service.StartCronService(cronInterval)
+	service.StartCronService(cronInterval, conf.PendingOrdersBatchSize)
 
 	serveAsync(conf.ServerHost+":"+fmt.Sprint(conf.ServerPort), conf.ServerMode)
 }
