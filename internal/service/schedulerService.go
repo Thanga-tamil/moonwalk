@@ -113,18 +113,18 @@ func buildOrder(alg, orderId, resourceType string, resourceId, dishId int, eta t
 	}
 }
 
-// backlogFor returns the estimated minutes of queued work that must finish
-// before the given dish can be processed. FIFO (pre-cooked / forced) orders fill
-// the server queue (each occupying the fixed serving time), while resource-aware
-// orders fill the chef queue (each occupying its dish's prep time).
-// func backlogFor(dish *pkg.Dish) (int, error) {
-// 	fifoCount, resourceMinutes, err := repository.GetPendingBacklog()
-// 	if err != nil {
-// 		return 0, err
-// 	}
+func fifoEtaScheduler(dish *pkg.Dish, supplier *pkg.Suppliers) pkg.Order {
+	var eta time.Time
+	if time.Now().After(supplier.OrderCompletionTime) {
+		eta = time.Now().Add(time.Duration(FIFO_ETA_MINUTES) * time.Minute)
+	} else {
+		eta = supplier.OrderCompletionTime.Add(time.Duration(FIFO_ETA_MINUTES) * time.Minute)
+	}
 
-// 	if strategyForDish(dish, schedulerStrategy) {
-// 		return fifoCount * FIFO_ETA_MINUTES, nil
-// 	}
-// 	return resourceMinutes, nil
-// }
+	order := buildOrder(FIFO, utils.GetRandomUUID(), SUPPLIER, supplier.Id, dish.Id, eta)
+
+	supplier.UpdatedAt = time.Now()
+	supplier.OrderCompletionTime = eta
+
+	return order
+}

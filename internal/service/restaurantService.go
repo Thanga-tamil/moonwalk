@@ -13,6 +13,7 @@ import (
 	chefsRepo "moonwalk/internal/repository"
 	dishesRepo "moonwalk/internal/repository"
 	ordersRepo "moonwalk/internal/repository"
+	suppliersRepo "moonwalk/internal/repository"
 	"moonwalk/pkg"
 )
 
@@ -97,15 +98,22 @@ func PlaceOrder(ctx *gin.Context, data *pkg.PlaceOrderDto) {
 		var order *pkg.Order
 
 		if dish.PreCooked {
-			// find supplier for fifo
-			// supplier, ok := resource.(pkg.Suppliers)
-			// 	if !ok {
-			// 		errMsg := "Unable to convert resource to specified type 'chef'"
-			// 		WriteErr(ctx, errMsg)
-			// 		return errors.New(errMsg)
-			// 	}
-			// handlePreCookedOrder()
-
+			resource, err = suppliersRepo.FindAvailableSupplier(tx)
+			if err != nil {
+				WriteErr(ctx, "Error whlie fetching supplier")
+				return err
+			}
+			supplier, ok := resource.(*pkg.Suppliers)
+			if !ok {
+				errMsg := "Unable to convert resource to specified type 'supplier'"
+				WriteErr(ctx, errMsg)
+				return errors.New(errMsg)
+			}
+			order, err = handlePreCookedOrder(tx, supplier, &dish)
+			if err != nil {
+				WriteErr(ctx, err.Error())
+				return err
+			}
 		} else {
 			resource, err = chefsRepo.FindAvailableChef(tx)
 			if err != nil {
@@ -168,6 +176,36 @@ func handleResourceAwareOrder(tx *gorm.DB, chef *pkg.Chefs, dish *pkg.Dish) (*pk
 		chef.Status = BUSY
 	}
 	if err := chefsRepo.UpdateChef(tx, chef); err != nil {
+		return nil, err
+	}
+
+	return &order, nil
+}
+
+func handlePreCookedOrder(tx *gorm.DB, supplier *pkg.Suppliers, dish *pkg.Dish) (*pkg.Order, error) {
+
+	order := fifoEtaScheduler(dish, supplier)
+
+	// audit pending status of the order
+	recordExecution(tx, &order)
+	if err := ordersRepo.Insert(tx, &order); err != nil {
+		return nil, err
+	}
+
+	if supplier.Status == IDLE {
+		order.Status = "PREPARING"
+		order.ResourceType = SUPPLIER
+		ordersRepo.UpdateOrder(tx, &order)
+
+		// audit preparing status of the order
+		recordExecution(tx, &order)
+	}
+
+	if supplier.Status == IDLE {
+		supplier.CurrentOrderID = order.OrderId
+		supplier.Status = BUSY
+	}
+	if err := suppliersRepo.UpdateSupplier(tx, supplier); err != nil {
 		return nil, err
 	}
 
