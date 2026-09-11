@@ -193,9 +193,12 @@ func handlePreCookedOrder(tx *gorm.DB, supplier *pkg.Suppliers, dish *pkg.Dish) 
 	}
 
 	if supplier.Status == IDLE {
-		order.Status = "PREPARING"
+		order.Status = "PROCESSING"
 		order.ResourceType = SUPPLIER
-		ordersRepo.UpdateOrder(tx, &order)
+		err := ordersRepo.UpdateOrder(tx, &order)
+		if err != nil {
+			return nil, err
+		}
 
 		// audit preparing status of the order
 		recordExecution(tx, &order)

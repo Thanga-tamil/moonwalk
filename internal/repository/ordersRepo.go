@@ -165,12 +165,12 @@ func UpdateOrder(tx *gorm.DB, order *pkg.Order) error {
 		Updates(order).Error
 }
 
-// update order to 'READY' status and return the updated records for audit transition
-func FindPreparingOrdersByEtaPlusOneMinute(tx *gorm.DB, alg, currentStatus, nextStatus string) (*[]pkg.Order, error) {
+// update order status and return the updated records for audit transition
+func UpdateResourceAwareOrdersStatusByETA(tx *gorm.DB, alg, currentStatus, nextStatus string, eta time.Time) (*[]pkg.Order, error) {
 	var orders []pkg.Order
 
 	err := tx.Table("orders").
-		Where("alg = ? and status = ? and eta <= DATE_ADD(NOW(), INTERVAL 1 MINUTE)", alg, currentStatus).
+		Where("alg = ? and status = ? and eta <= ?", alg, currentStatus, eta).
 		Find(&orders).Error
 
 	if err != nil {
@@ -182,13 +182,20 @@ func FindPreparingOrdersByEtaPlusOneMinute(tx *gorm.DB, alg, currentStatus, next
 		ids = append(ids, o.OrderId)
 	}
 
-	err = tx.Table("orders").
+	result := tx.Table("orders").
 		Where("order_id IN ?", ids).
 		Updates(map[string]interface{}{
 			"status":     nextStatus,
 			"updated_at": time.Now(),
-		}).Error
+		})
 
+	if result.Error != nil {
+		return nil, result.Error
+	}
+
+	log.Infof("%d orders updated to status: %s", result.RowsAffected, nextStatus)
+
+	err = tx.Table("orders").Where("order_id IN ?", ids).Find(&orders).Error
 	if err != nil {
 		return nil, err
 	}

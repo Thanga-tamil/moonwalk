@@ -48,6 +48,7 @@ const (
 	PREPARING = "PREPARING"
 	READY     = "READY"
 	SERVING   = "SERVING"
+	SERVED    = "SERVED"
 )
 
 // schedulerStrategy holds the server-wide strategy loaded from config. It is
