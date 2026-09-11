@@ -2,12 +2,9 @@ package service
 
 import (
 	"moonwalk/internal/repository"
-	orderRepo "moonwalk/internal/repository"
 	"moonwalk/internal/utils"
 	"moonwalk/pkg"
 	"time"
-
-	log "github.com/Thanga-tamil/logger_v2"
 
 	"gorm.io/gorm"
 )
@@ -25,7 +22,7 @@ func recordExecution(tx *gorm.DB, o *pkg.Order) {
 		timeElapsed = 0
 	}
 
-	repository.RecordExecution(tx, &pkg.OrderExecution{
+	repository.RecordExecution(tx, &pkg.OrderExec{
 		OrderId:       o.OrderId,
 		Status:        o.Status,
 		Algorithm:     o.Alg,
@@ -62,7 +59,7 @@ func SetSchedulerStrategy(strategy string) {
 // strategyDish selects which strategy a dish uses given the optional server-wide
 // strategy override. A "forced" strategy applies to every dish; "auto" defers
 // to the dish's own pre-cooked flag.
-func strategyForDish(dish pkg.Dish, force string) bool {
+func strategyForDish(dish *pkg.Dish, force string) bool {
 	// returns true when FIFO (server) should be used
 	switch force {
 	case pkg.StrategyFIFO:
@@ -84,57 +81,35 @@ func strategyForDish(dish pkg.Dish, force string) bool {
 // backlogMinutes is the estimated minutes of work already queued ahead of this
 // order (from GetPendingBacklog). It is added to the ETA so the countdown
 // reflects the current kitchen backlog, not just an empty kitchen.
-func scheduler(dish pkg.Dish, resource *pkg.Resources, backlogMinutes int) pkg.Order {
-	if strategyForDish(dish, schedulerStrategy) {
-		return fifoSchedule(dish, resource, backlogMinutes)
-	}
-	return resourceAwareSchedule(dish, resource, backlogMinutes)
-}
-
-func fifoSchedule(dish pkg.Dish, supplier *pkg.Resources, backlogMinutes int) pkg.Order {
-	// servers := utils.Filter(*resource, SUPPLIER)
-	eta := time.Now().Add(time.Duration(backlogMinutes+FIFO_ETA_MINUTES) * time.Minute)
-
-	if supplier.Status == IDLE {
-		log.Infox("FIFO schedule: assigning order to supplier", supplier.Id, dish.Id)
-	} else {
-		log.Infox("", "FIFO schedule: no idle supplier available, order queued to supplier", supplier.Id)
-	}
-
-	return buildOrder(FIFO, utils.GetRandomUUID(), supplier.Id, dish.Id, eta)
-}
-
-func resourceAwareSchedule(dish pkg.Dish, chef *pkg.Resources, backlogMinutes int) pkg.Order {
-	// Each RESOURCE AWARE order should be served by a server after compilation of cooking by a chef.
-	// So, the ETA should be calculated as the sum of backlogMinutes + dish.PrepTime + FIFO_ETA_MINUTES
-
+func resourceAwareEtaScheduler(dish *pkg.Dish, chef *pkg.Chefs) pkg.Order {
 	var eta time.Time
-
-	if chef.Status == IDLE {
-		eta = time.Now().Add(time.Duration(backlogMinutes+dish.PrepTime+FIFO_ETA_MINUTES) * time.Minute)
-		log.Infof("RESOURCE AWARE schedule: assigning order to chef: %d, dishId: %d", chef.Id, dish.Id)
+	if time.Now().After(chef.CookingCompletionTime) {
+		eta = time.Now().Add(time.Duration(dish.PrepTime+FIFO_ETA_MINUTES) * time.Minute)
 	} else {
-		inProgressOrderByChef, err := orderRepo.FindChefInProgressOrder(chef.Id)
-		if err != nil {
-			log.Error("Error while fetching preparing orders for new order asigning:", err.Error())
-			panic(err) // todo
-		}
-		// eta = time.Now().Add(time.Duration(backlogMinutes+dish.PrepTime+FIFO_ETA_MINUTES) * time.Minute)
-		eta = inProgressOrderByChef.Eta.Add(time.Duration(backlogMinutes+dish.PrepTime+FIFO_ETA_MINUTES) * time.Minute)
-		log.Info("", "RESOURCE AWARE schedule: no idle chef available, order queued to chef", chef.Id)
+		eta = chef.CookingCompletionTime.Add(time.Duration(dish.PrepTime+FIFO_ETA_MINUTES) * time.Minute)
 	}
-	return buildOrder(RES_AWARE, utils.GetRandomUUID(), chef.Id, dish.Id, eta)
+
+	order := buildOrder(RES_AWARE, utils.GetRandomUUID(), CHEF, chef.Id, dish.Id, eta)
+
+	// track each CHEF's cooking completion time
+	// so to find chef who would complete the cooking process
+	// and be idle
+	chef.UpdatedAt = time.Now()
+	chef.CookingCompletionTime = eta
+
+	return order
 }
 
-func buildOrder(alg, orderId string, resourceId, dishId int, eta time.Time) pkg.Order {
+func buildOrder(alg, orderId, resourceType string, resourceId, dishId int, eta time.Time) pkg.Order {
 	return pkg.Order{
-		Eta:        eta,
-		ResourceId: resourceId,
-		DishId:     dishId,
-		Alg:        alg,
-		Status:     "PENDING",
-		CreatedAt:  time.Now(),
-		OrderId:    orderId,
+		Eta:          eta,
+		ResourceId:   resourceId,
+		ResourceType: resourceType,
+		DishId:       dishId,
+		Alg:          alg,
+		Status:       "PENDING",
+		CreatedAt:    time.Now(),
+		OrderId:      orderId,
 	}
 }
 
@@ -142,14 +117,14 @@ func buildOrder(alg, orderId string, resourceId, dishId int, eta time.Time) pkg.
 // before the given dish can be processed. FIFO (pre-cooked / forced) orders fill
 // the server queue (each occupying the fixed serving time), while resource-aware
 // orders fill the chef queue (each occupying its dish's prep time).
-func backlogFor(dish pkg.Dish) (int, error) {
-	fifoCount, resourceMinutes, err := repository.GetPendingBacklog()
-	if err != nil {
-		return 0, err
-	}
+// func backlogFor(dish *pkg.Dish) (int, error) {
+// 	fifoCount, resourceMinutes, err := repository.GetPendingBacklog()
+// 	if err != nil {
+// 		return 0, err
+// 	}
 
-	if strategyForDish(dish, schedulerStrategy) {
-		return fifoCount * FIFO_ETA_MINUTES, nil
-	}
-	return resourceMinutes, nil
-}
+// 	if strategyForDish(dish, schedulerStrategy) {
+// 		return fifoCount * FIFO_ETA_MINUTES, nil
+// 	}
+// 	return resourceMinutes, nil
+// }

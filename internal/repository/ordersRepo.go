@@ -159,19 +159,8 @@ func UpdateResourceAwareOrdersStatusToServing(tx *gorm.DB, orderId string) error
 		}).Error
 }
 
-func FindChefInProgressOrder(resourceId int) (pkg.Order, error) {
-	var order pkg.Order
-
-	err := app.DB.Table("orders").
-		Where("resource_id = ?", resourceId).
-		Order("eta DESC").
-		Limit(1).
-		Find(&order).
-		Error
-
-	if err != nil {
-		return order, err
-	}
-
-	return order, nil
+func UpdateOrder(tx *gorm.DB, order *pkg.Order) error {
+	return tx.Model(&pkg.Order{}).
+		Where("order_id = ?", order.OrderId).
+		Updates(order).Error
 }

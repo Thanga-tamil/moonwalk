@@ -45,31 +45,40 @@ type PlaceOrderDto struct {
 }
 
 type Order struct {
-	OrderId    string    `json:"order_id"`
-	DishId     int       `json:"dish_id"`
-	ResourceId int       `json:"resource_id"`
-	Status     string    `json:"status"`
-	Eta        time.Time `json:"eta"`
-	Alg        string    `json:"alg"`
-	CreatedAt  time.Time `json:"created_at"`
-	UpdatedAt  time.Time `json:"updated_at"`
+	OrderId      string    `json:"order_id"`
+	DishId       int       `json:"dish_id"`
+	ResourceId   int       `json:"resource_id"`
+	ResourceType string    `json:"resource_type"`
+	Status       string    `json:"status"`
+	Eta          time.Time `json:"eta"`
+	Alg          string    `json:"alg"`
+	CreatedAt    time.Time `json:"created_at"`
+	UpdatedAt    time.Time `json:"updated_at"`
 }
 
-type Resources struct {
+type Suppliers struct {
 	Id                int       `gorm:"column:id" json:"id"`
-	Type              string    `gorm:"column:type" json:"type"`
 	CurrentOrderID    string    `gorm:"column:current_order_id" json:"current_order_id"`
 	Status            string    `gorm:"column:status" json:"chef_status"`
+	OrderHandlingType bool      `json:"order_handling_type"`
 	CreatedAt         time.Time `gorm:"column:created_at" json:"created_at"`
 	UpdatedAt         time.Time `gorm:"column:updated_at" json:"updated_at"`
-	OrderHandlingType bool      `json:"order_handling_type"`
+}
+
+type Chefs struct {
+	Id                    int       `gorm:"column:id" json:"id"`
+	CurrentOrderID        string    `gorm:"column:current_order_id" json:"current_order_id"`
+	Status                string    `gorm:"column:status" json:"chef_status"`
+	CookingCompletionTime time.Time `gorm:"column:cooking_completion_time" json:"cooking_completion_time"`
+	CreatedAt             time.Time `gorm:"column:created_at" json:"created_at"`
+	UpdatedAt             time.Time `gorm:"column:updated_at" json:"updated_at"`
 }
 
 // OrderExecution records a single status transition for an order. It forms the
 // audit trail required by the problem statement: every execution step is
 // persisted with its timestamp, the time elapsed so far and the estimated
 // total time, the resulting order status and the algorithm in use.
-type OrderExecution struct {
+type OrderExec struct {
 	Id            int       `gorm:"column:id" json:"id"`
 	OrderId       string    `gorm:"column:order_id" json:"order_id"`
 	Status        string    `gorm:"column:status" json:"status"`

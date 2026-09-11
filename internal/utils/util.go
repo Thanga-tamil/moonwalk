@@ -58,18 +58,6 @@ func GetRandomUUID() string {
 	return uuid.New().String()
 }
 
-func Filter(resources []pkg.Resources, filterType string) []pkg.Resources {
-	result := make([]pkg.Resources, 0)
-
-	for _, resource := range resources {
-		if resource.Type == filterType {
-			result = append(result, resource)
-		}
-	}
-
-	return result
-}
-
 func PrettyPrint(title string, data interface{}) {
 	data, err := json.MarshalIndent(data, "", "  ")
 	if err != nil {

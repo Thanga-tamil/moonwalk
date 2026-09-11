@@ -11,8 +11,8 @@ import (
 // order_executions audit table. TimeEstimated and TimeElapsed are stored in
 // seconds. Failures are logged and swallowed so an audit write never blocks
 // the core order flow.
-func RecordExecution(tx *gorm.DB, e *pkg.OrderExecution) {
-	if err := tx.Table("order_executions").Create(e).Error; err != nil {
+func RecordExecution(tx *gorm.DB, e *pkg.OrderExec) {
+	if err := tx.Table("order_exec").Create(e).Error; err != nil {
 		log.Error("Error recording order execution audit:", err.Error())
 	}
 }

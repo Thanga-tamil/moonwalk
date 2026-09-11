@@ -4,14 +4,15 @@ import (
 	"errors"
 	"net/http"
 	"strconv"
-	"time"
 
 	log "github.com/Thanga-tamil/logger_v2"
 	"github.com/gin-gonic/gin"
 	"gorm.io/gorm"
 
 	"moonwalk/internal/app"
-	"moonwalk/internal/repository"
+	chefsRepo "moonwalk/internal/repository"
+	dishesRepo "moonwalk/internal/repository"
+	ordersRepo "moonwalk/internal/repository"
 	"moonwalk/pkg"
 )
 
@@ -23,7 +24,7 @@ func GetAllDishes(ctx *gin.Context, page, size int) {
 	// since the pagination handled in query itself, we can't get the
 	// totalRecords from the retrieved dataset, so handle and return no
 	// records case before processing the data
-	totalRecords, err := repository.TotalRecordsOfDishes()
+	totalRecords, err := dishesRepo.TotalRecordsOfDishes()
 	if err != nil {
 		log.Error("Error while retriving data from schema:", err.Error())
 		WriteErr(ctx, err.Error())
@@ -38,7 +39,7 @@ func GetAllDishes(ctx *gin.Context, page, size int) {
 
 	// Retrieve available dishes from db.
 	// let the query take care of pagination using limit & offset
-	dishes, err := repository.GetAllDishes(page, size)
+	dishes, err := dishesRepo.GetAllDishes(page, size)
 	if err != nil {
 		log.Error("Error while retriving All Dishes from schema:", err.Error())
 		WriteErr(ctx, err.Error())
@@ -81,7 +82,7 @@ func ValidatePlaceOrderInput(ctx *gin.Context) (*pkg.PlaceOrderDto, error) {
 
 func PlaceOrder(ctx *gin.Context, data *pkg.PlaceOrderDto) {
 	err := app.DB.Transaction(func(tx *gorm.DB) error {
-		dish, err := repository.GetDish(data.DishId)
+		dish, err := dishesRepo.GetDish(data.DishId)
 
 		if err != nil {
 			log.Error("Error while parsing place order input:", err.Error())
@@ -92,51 +93,47 @@ func PlaceOrder(ctx *gin.Context, data *pkg.PlaceOrderDto) {
 			return err
 		}
 
-		resource, err := repository.FindResource(tx, dish.PreCooked)
+		var resource any
+		var order *pkg.Order
 
-		if err != nil {
-			WriteErr(ctx, err.Error())
-			return err
-		}
+		if dish.PreCooked {
+			// find supplier for fifo
+			// supplier, ok := resource.(pkg.Suppliers)
+			// 	if !ok {
+			// 		errMsg := "Unable to convert resource to specified type 'chef'"
+			// 		WriteErr(ctx, errMsg)
+			// 		return errors.New(errMsg)
+			// 	}
+			// handlePreCookedOrder()
 
-		backlogMinutes, err := backlogFor(dish)
-		if err != nil {
-			log.Error("Error while computing backlog:", err.Error())
-			WriteErr(ctx, err.Error())
-			return err
-		}
-
-		order := scheduler(dish, resource, backlogMinutes)
-
-		// persist the audit trail for the order creation step
-		recordExecution(tx, &order)
-
-		// if a resource is available, update the order status to PREPARING or PROCESSING
-		// based on algorithm and update the resource status to BUSY
-		log.Infox("resource: ", resource)
-		if resource.Status == IDLE {
-			if order.Alg == FIFO {
-				order.Status = "PROCESSING"
-			} else {
-				order.Status = "PREPARING"
+		} else {
+			resource, err = chefsRepo.FindAvailableChef(tx)
+			if err != nil {
+				WriteErr(ctx, "Error whlie fetching chef")
+				return err
 			}
 
-			repository.UpdateOrderStatus(tx, order.OrderId, order.Status, time.Time{})
-			repository.UpdateResourceStatus(tx, order.ResourceId, BUSY, order.OrderId)
-			recordExecution(tx, &order)
+			chef, ok := resource.(*pkg.Chefs)
+			if !ok {
+				errMsg := "Unable to convert resource to specified type 'chef'"
+				WriteErr(ctx, errMsg)
+				return errors.New(errMsg)
+			}
+
+			order, err = handleResourceAwareOrder(tx, chef, &dish)
+			if err != nil {
+				WriteErr(ctx, err.Error())
+				return err
+			}
 		}
+
 		log.Infox("order: ", order)
-		if err := repository.Insert(tx, &order); err != nil {
-			WriteErr(ctx, err.Error())
-			return err
-		}
 
 		response := map[string]interface{}{
 			"statusCode": 200,
 			"message":    "Order placed successfully",
 			"data":       order,
 		}
-
 		ctx.JSON(http.StatusOK, response)
 		return nil
 	})
@@ -145,4 +142,34 @@ func PlaceOrder(ctx *gin.Context, data *pkg.PlaceOrderDto) {
 		WriteErr(ctx, err.Error())
 		return
 	}
+}
+
+func handleResourceAwareOrder(tx *gorm.DB, chef *pkg.Chefs, dish *pkg.Dish) (*pkg.Order, error) {
+
+	order := resourceAwareEtaScheduler(dish, chef)
+
+	// audit pending status of the order
+	recordExecution(tx, &order)
+	if err := ordersRepo.Insert(tx, &order); err != nil {
+		return nil, err
+	}
+
+	if chef.Status == IDLE {
+		order.Status = "PREPARING"
+		order.ResourceType = CHEF
+		ordersRepo.UpdateOrder(tx, &order)
+
+		// audit preparing status of the order
+		recordExecution(tx, &order)
+	}
+
+	if chef.Status == IDLE {
+		chef.CurrentOrderID = order.OrderId
+		chef.Status = BUSY
+	}
+	if err := chefsRepo.UpdateChef(tx, chef); err != nil {
+		return nil, err
+	}
+
+	return &order, nil
 }
