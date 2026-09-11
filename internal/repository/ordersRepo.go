@@ -62,7 +62,11 @@ func UpdateResourceAwareOrdersStatusByETA(tx *gorm.DB, alg, currentStatus, nextS
 		return nil, result.Error
 	}
 
-	log.Infof("%d resource aware orders updated to status: %s", result.RowsAffected, nextStatus)
+	if result.RowsAffected > 0 {
+		log.Infofx("%d resource aware orders updated to status: %s", result.RowsAffected, nextStatus)
+	} else {
+		log.Info("No resource aware 'serving' order found process to 'served' state")
+	}
 
 	err = tx.Table("orders").Where("order_id IN ?", ids).Find(&orders).Error
 	if err != nil {
@@ -83,7 +87,7 @@ func FetchResourceAwareOrdersByStatus(tx *gorm.DB, status string) ([]pkg.Order, 
 	return orders, nil
 }
 
-func UpdateFifoProcessingOrders(tx *gorm.DB, alg, currentStatus, nextStatus string, eta time.Time) ([]string, error) {
+func UpdateFifoProcessingOrders(tx *gorm.DB, alg, currentStatus, nextStatus string, eta time.Time) (*[]pkg.Order, *[]string, error) {
 
 	var orders []pkg.Order
 
@@ -92,7 +96,7 @@ func UpdateFifoProcessingOrders(tx *gorm.DB, alg, currentStatus, nextStatus stri
 		Find(&orders).Error
 
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
 	ids := []string{}
@@ -108,12 +112,16 @@ func UpdateFifoProcessingOrders(tx *gorm.DB, alg, currentStatus, nextStatus stri
 		})
 
 	if updatedOrders.Error != nil {
-		return nil, updatedOrders.Error
+		return nil, nil, updatedOrders.Error
 	}
 
-	log.Infof("%d Fifo orders updated to status: %s", updatedOrders.RowsAffected, nextStatus)
+	if updatedOrders.RowsAffected > 0 {
+		log.Infofx("%d Fifo orders updated to status: %s", updatedOrders.RowsAffected, nextStatus)
+	} else {
+		log.Infof("%d Fifo orders updated to status: %s", updatedOrders.RowsAffected, nextStatus)
+	}
 
-	return ids, nil
+	return &orders, &ids, nil
 }
 
 func FetchPendingResourceAwareOrders(tx *gorm.DB, status string, batchSize int) ([]pkg.Order, error) {

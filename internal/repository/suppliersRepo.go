@@ -21,7 +21,7 @@ func UpdateSupplier(tx *gorm.DB, supplier *pkg.Suppliers) error {
 	return tx.Save(&supplier).Error
 }
 
-func FindResourceAwareHandlingSuppliers(tx *gorm.DB) (*[]pkg.Suppliers, error) {
+func FindResourceAwareHandlingSuppliers(tx *gorm.DB) ([]pkg.Suppliers, error) {
 	var suppliers []pkg.Suppliers
 
 	err := tx.Table("suppliers").
@@ -32,13 +32,13 @@ func FindResourceAwareHandlingSuppliers(tx *gorm.DB) (*[]pkg.Suppliers, error) {
 		return nil, err
 	}
 
-	return &suppliers, nil
+	return suppliers, nil
 }
 
-func UpdateSupplierStatus(tx *gorm.DB, orderIds []string, status string) (int64, error) {
+func UpdateSupplierStatus(tx *gorm.DB, orderIds *[]string, status string) (int64, error) {
 
 	suppliers := tx.Table("suppliers").
-		Where("current_order_id IN ?", orderIds).
+		Where("current_order_id IN ?", *orderIds).
 		Updates(map[string]interface{}{
 			"status": status,
 		})

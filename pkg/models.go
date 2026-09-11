@@ -47,7 +47,7 @@ type Order struct {
 type Suppliers struct {
 	Id                  int       `gorm:"column:id" json:"id"`
 	CurrentOrderID      string    `gorm:"column:current_order_id" json:"current_order_id"`
-	Status              string    `gorm:"column:status" json:"chef_status"`
+	Status              string    `gorm:"column:status" json:"supplier_status"`
 	OrderCompletionTime time.Time `gorm:"column:order_completion_time" json:"order_completion_time"`
 	OrderHandlingType   bool      `json:"order_handling_type"`
 	CreatedAt           time.Time `gorm:"column:created_at" json:"created_at"`

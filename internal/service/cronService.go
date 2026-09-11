@@ -103,7 +103,7 @@ func handleResourceAwareReadyOrdersBySupplier() {
 		}
 
 		suppliers, err := suppliersRepo.FindResourceAwareHandlingSuppliers(tx)
-		suppliersCount := len(*suppliers)
+		suppliersCount := len(suppliers)
 		if err != nil {
 			return err
 		}
@@ -115,13 +115,25 @@ func handleResourceAwareReadyOrdersBySupplier() {
 			orderSubList = append(orderSubList, orders[i])
 		}
 
-		for _, o := range orderSubList {
-			o.Status = SERVING
-			o.UpdatedAt = time.Now()
-			ordersRepo.UpdateOrder(tx, &o)
+		for i, o := range orderSubList {
+			supplier := suppliers[i]
+			if supplier.Status == IDLE {
+				o.Status = SERVING
+				o.UpdatedAt = time.Now()
 
-			// audit order status 'SERVING' transition
-			recordExecution(tx, &o)
+				ordersRepo.UpdateOrder(tx, &o)
+
+				// audit order status 'SERVING' transition
+				o.ResourceId = supplier.Id
+				recordExecution(tx, &o)
+
+				supplier.Status = BUSY
+				supplier.UpdatedAt = time.Now()
+				supplier.CurrentOrderID = o.OrderId
+				if err := suppliersRepo.UpdateSupplier(tx, &supplier); err != nil {
+					return err
+				}
+			}
 		}
 
 		return nil
@@ -144,7 +156,6 @@ func handleResourceAwareServingOrders() {
 		if err != nil {
 			return err
 		} else if len(*orders) == 0 {
-			log.Debug("No resource aware 'serving' order found process to 'served' state")
 			return nil
 		}
 
@@ -167,7 +178,6 @@ func handlePendingOrders(pendingOrdersBatchSize int) {
 
 		status := PENDING
 		orders, err := ordersRepo.FetchPendingResourceAwareOrders(tx, status, pendingOrdersBatchSize)
-		log.Warnx("orders: ", orders)
 		ordersCount := len(orders)
 		if err != nil {
 			return err
@@ -240,10 +250,17 @@ func handlFifoProcessingOrders() {
 		currentStatus := PROCESSING
 		nextStatus := SERVED
 
-		orderIds, err := ordersRepo.UpdateFifoProcessingOrders(tx, alg, currentStatus, nextStatus, eta)
+		orders, orderIds, err := ordersRepo.UpdateFifoProcessingOrders(tx, alg, currentStatus, nextStatus, eta)
 		if err != nil {
 			return err
 		}
+
+		for _, o := range *orders {
+			o.Status = nextStatus
+			o.UpdatedAt = time.Now()
+			recordExecution(tx, &o)
+		}
+
 		status := IDLE
 		updatedSuppliers, err := suppliersRepo.UpdateSupplierStatus(tx, orderIds, status)
 		if err != nil {
