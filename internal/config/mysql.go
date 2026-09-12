@@ -13,7 +13,7 @@ func NewMySQL(driverName, dataSourceName string, maxIdleConns, maxOpenConns int)
 	log.Infof("Initialize mysql db")
 
 	db, err := gorm.Open(mysql.Open(dataSourceName), &gorm.Config{
-		Logger: logger.Default.LogMode(logger.Info),
+		Logger: logger.Default.LogMode(logger.Warn),
 	})
 	if err != nil {
 		return nil, err
