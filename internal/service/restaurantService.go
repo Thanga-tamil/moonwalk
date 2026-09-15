@@ -159,14 +159,11 @@ func handleResourceAwareOrder(tx *gorm.DB, chef *pkg.Chefs, dish *pkg.Dish) (*pk
 	// audit pending status of the order
 	resourceType := CHEF
 	recordExecution(tx, &order, resourceType)
-	if err := ordersRepo.Insert(tx, &order); err != nil {
-		return nil, err
-	}
 
 	if chef.Status == IDLE {
 		order.Status = "PREPARING"
 		order.ResourceType = CHEF
-		ordersRepo.UpdateOrder(tx, &order)
+		ordersRepo.Insert(tx, &order)
 
 		// audit preparing status of the order
 		resourceType := CHEF
@@ -174,6 +171,8 @@ func handleResourceAwareOrder(tx *gorm.DB, chef *pkg.Chefs, dish *pkg.Dish) (*pk
 
 		chef.CurrentOrderID = order.OrderId
 		chef.Status = BUSY
+	} else if err := ordersRepo.Insert(tx, &order); err != nil {
+		return nil, err
 	}
 
 	if err := chefsRepo.UpdateChef(tx, chef); err != nil {
@@ -190,14 +189,11 @@ func handlePreCookedOrder(tx *gorm.DB, supplier *pkg.Suppliers, dish *pkg.Dish) 
 	// audit pending status of the order
 	resourceType := SUPPLIER
 	recordExecution(tx, &order, resourceType)
-	if err := ordersRepo.Insert(tx, &order); err != nil {
-		return nil, err
-	}
 
 	if supplier.Status == IDLE {
 		order.Status = PROCESSING
 		order.ResourceType = SUPPLIER
-		err := ordersRepo.UpdateOrder(tx, &order)
+		err := ordersRepo.Insert(tx, &order)
 		if err != nil {
 			return nil, err
 		}
@@ -208,6 +204,8 @@ func handlePreCookedOrder(tx *gorm.DB, supplier *pkg.Suppliers, dish *pkg.Dish) 
 
 		supplier.CurrentOrderID = order.OrderId
 		supplier.Status = BUSY
+	} else if err := ordersRepo.Insert(tx, &order); err != nil {
+		return nil, err
 	}
 
 	if err := suppliersRepo.UpdateSupplier(tx, supplier); err != nil {
