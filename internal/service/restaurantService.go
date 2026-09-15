@@ -171,12 +171,11 @@ func handleResourceAwareOrder(tx *gorm.DB, chef *pkg.Chefs, dish *pkg.Dish) (*pk
 		// audit preparing status of the order
 		resourceType := CHEF
 		recordExecution(tx, &order, resourceType)
-	}
 
-	if chef.Status == IDLE {
 		chef.CurrentOrderID = order.OrderId
 		chef.Status = BUSY
 	}
+
 	if err := chefsRepo.UpdateChef(tx, chef); err != nil {
 		return nil, err
 	}
@@ -206,12 +205,11 @@ func handlePreCookedOrder(tx *gorm.DB, supplier *pkg.Suppliers, dish *pkg.Dish) 
 		// audit preparing status of the order
 		resourceType := SUPPLIER
 		recordExecution(tx, &order, resourceType)
-	}
 
-	if supplier.Status == IDLE {
 		supplier.CurrentOrderID = order.OrderId
 		supplier.Status = BUSY
 	}
+
 	if err := suppliersRepo.UpdateSupplier(tx, supplier); err != nil {
 		return nil, err
 	}
