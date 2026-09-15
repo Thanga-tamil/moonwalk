@@ -6,7 +6,6 @@ import (
 	"moonwalk/internal/api/rest"
 	"moonwalk/internal/app"
 	"moonwalk/internal/config"
-	"moonwalk/internal/service"
 	"moonwalk/internal/utils"
 	"net/http"
 	"os"
@@ -37,10 +36,10 @@ func main() {
 
 	// start the background cron service handling order
 	// completion and pending order re-scheduling
-	cronInterval := time.Duration(conf.CronInterval) * time.Second
-	service.StartCronService(cronInterval, conf.PendingOrdersBatchSize)
+	// cronInterval := time.Duration(conf.CronInterval) * time.Second
+	// service.StartCronService(cronInterval, conf.PendingOrderProcBatchSize)
 
-	serveAsync(conf.ServerHost+":"+fmt.Sprint(conf.ServerPort), conf.ServerMode)
+	serveAsync(conf.ServerHost+":"+fmt.Sprint(conf.ServerPort), conf.ServerMode, conf.AddNewDishBatchSize)
 }
 
 /* Log levels 0 = ERROR | 1 = INFO | 2 = DEBUG | 3 = WARN */
@@ -74,8 +73,8 @@ func setLogger(logLevel int, writeToFile bool, logFile string) {
 // serveAsync starts the HTTP server in the background and blocks until either
 // the server fails or an OS shutdown signal (SIGINT/SIGTERM) is received, in
 // which case the server and database are shut down gracefully.
-func serveAsync(addr, serverMode string) {
-	server, errChan := rest.Serve(addr, serverMode)
+func serveAsync(addr, serverMode string, addNewDishBatchSize int) {
+	server, errChan := rest.Serve(addr, serverMode, addNewDishBatchSize)
 
 	quit := make(chan os.Signal, 1)
 	signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)

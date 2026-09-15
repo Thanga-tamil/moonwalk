@@ -11,6 +11,7 @@ func Router(serve *gin.Engine) {
 	dish := serve.Group("/api/v1/dish")
 	{
 		dish.POST("", handler.AddDish)
+		dish.POST("/dishes", handler.AddDishes)
 		// dish.PUT("/update", handler.GetAllDishes)
 		// dish.DELETE("/", handler.GetAllDishes)
 		dish.GET("/dishes", handler.GetAllDishes)

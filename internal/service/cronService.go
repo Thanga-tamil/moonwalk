@@ -17,7 +17,7 @@ import (
 
 var cronMu sync.Mutex
 
-func StartCronService(cronInterval time.Duration, pendingOrdersBatchSize int) {
+func StartCronService(cronInterval time.Duration, PendingOrderProcBatchSize int) {
 	log.Infox("Starting cron service with", "TimeInterval", cronInterval)
 
 	ticker := time.NewTicker(cronInterval)
@@ -38,7 +38,7 @@ func StartCronService(cronInterval time.Duration, pendingOrdersBatchSize int) {
 				wg.Go(handleResourceAwareReadyOrdersBySupplier)
 				wg.Go(handleResourceAwareServingOrders)
 				wg.Go(func() {
-					handlePendingOrders(pendingOrdersBatchSize)
+					handlePendingOrders(PendingOrderProcBatchSize)
 				})
 				wg.Go(handlFifoProcessingOrders)
 
@@ -168,12 +168,12 @@ func handleResourceAwareServingOrders() {
 	}
 }
 
-func handlePendingOrders(pendingOrdersBatchSize int) {
+func handlePendingOrders(pendingOrderProcBatchSize int) {
 	log.Info("handling resource aware pending orders")
 	err := app.DB.Transaction(func(tx *gorm.DB) error {
 
 		status := PENDING
-		orders, err := ordersRepo.FetchPendingResourceAwareOrders(tx, status, pendingOrdersBatchSize)
+		orders, err := ordersRepo.FetchPendingResourceAwareOrders(tx, status, pendingOrderProcBatchSize)
 		ordersCount := len(orders)
 		if err != nil {
 			return err

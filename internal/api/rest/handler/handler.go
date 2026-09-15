@@ -27,7 +27,24 @@ func AddDish(ctx *gin.Context) {
 	log.Warnfx("dish :: %#v", dish)
 
 	dishService.AddDish(ctx, dish)
+}
 
+func AddDishes(ctx *gin.Context) {
+	var dishes *[]pkg.AddDishDto
+
+	if err := ctx.ShouldBindBodyWithJSON(&dishes); err != nil {
+		dishService.WriteErr(ctx, err.Error())
+		return
+	}
+
+	if err := dishService.ValidateAddDishesInputPayload(dishes); err != nil {
+		dishService.WriteErr(ctx, err.Error())
+		return
+	}
+
+	log.Warnfx("dishes :: %#v", dishes)
+
+	dishService.AddDishes(ctx, dishes)
 }
 
 // GetAvailableDishes function returns a list of available dishes
