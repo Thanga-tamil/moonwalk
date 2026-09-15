@@ -11,6 +11,7 @@ import (
 
 	log "github.com/Thanga-tamil/logger_v2"
 	"github.com/gin-gonic/gin"
+	"github.com/redis/go-redis/v9"
 
 	"moonwalk/internal/app"
 	dishesRepo "moonwalk/internal/repository"
@@ -20,10 +21,31 @@ import (
 var backgroundCtx = context.Background()
 var AddNewDishBatchSize = 0
 
+const (
+	MapName = "dishes"
+)
+
 // GetAvailableDishes function returns a list of available dishes
 // by retrieving statistics from the db. Assume unavailability
 // of dishes will be updated by the respective restaurants.
 func GetAllDishes(ctx *gin.Context, page, size int) {
+
+	// dishess, err := app.Redis.HGetAll(backgroundCtx, MapName).Result()
+	// if err != nil {
+	// 	log.Error("Error fetching from Redis: %v", err)
+	// 	WriteErr(ctx, err.Error())
+	// 	return
+	// }
+
+	// log.Infox("", "Retrieved map len: ", len(dishess))
+	// if len(dishess) > 0 {
+	// 	response := pkg.Success(200, "Data retrieved successfully", dishess, totalRecords, len(dishes), totalPages)
+	// 		ctx.JSON(http.StatusOK, response)
+	// 	return
+	// }
+	// for key, value := range dishess {
+	// 	log.Warnx("%s: %s\n", key, value)
+	// }
 
 	// since the pagination handled in query itself, we can't get the
 	// totalRecords from the retrieved dataset, so handle and return no
@@ -102,16 +124,15 @@ func AddDish(ctx *gin.Context, dishPayload *pkg.AddDishDto) {
 	}
 
 	// store dish in redis cache to reduce external I/O while retrieving dishes
-	mapName := "dishes"
-	mapKey := dish.Id
-	if err := app.Redis.HSet(ctx, mapName, mapKey, mapValue).Err(); err != nil {
+	sortedSetMem := redis.Z{Score: float64(dish.Id), Member: string(mapValue)}
+	if err := app.Redis.ZAdd(ctx, MapName, sortedSetMem).Err(); err != nil {
 		WriteErr(ctx, err.Error())
 		return
 	}
 
 	response := map[string]interface{}{
 		"statusCode": 200,
-		"dishId":     mapKey,
+		"dishId":     dish.Id,
 		"message":    "Dish added successfully",
 	}
 
@@ -174,9 +195,8 @@ func AddDishes(ctx *gin.Context, dishesPayload *[]pkg.AddDishDto) {
 		}
 
 		// store dishes in redis cache to reduce external I/O while retrieving dishes
-		mapName := "dishes"
-		mapKey := dish.Id
-		if err := app.Redis.HSet(ctx, mapName, mapKey, mapValue).Err(); err != nil {
+		sortedSetMem := redis.Z{Score: float64(dish.Id), Member: string(mapValue)}
+		if err := app.Redis.ZAdd(ctx, MapName, sortedSetMem).Err(); err != nil {
 			WriteErr(ctx, err.Error())
 			return
 		}
