@@ -27,12 +27,10 @@ func Serve(ADDR, serverMode string) (*http.Server, <-chan error) {
 	serve.Use(gin.Recovery())
 	log.Infox("Middlewares attached to GIN successfull")
 
-	v1Group := serve.Group("/api/v1")
+	route.Router(serve)
 
-	route.Router(v1Group)
-
-	log.Infox("Server started successfully.", "ServerMode", serverMode)
-	log.Infox("Serving HTTP request response.", "@ADDRESS", ADDR)
+	log.Infox("Server started successfully ::", "ServerMode", serverMode)
+	log.Infox("Serving HTTP request response ::", "@ADDRESS", ADDR)
 
 	httpServer := &http.Server{
 		Addr:         ADDR,

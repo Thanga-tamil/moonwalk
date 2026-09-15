@@ -1,14 +1,17 @@
 package app
 
 import (
+	"fmt"
 	"moonwalk/internal/config"
 	"moonwalk/pkg"
 
 	log "github.com/Thanga-tamil/logger_v2"
+	"github.com/redis/go-redis/v9"
 	"gorm.io/gorm"
 )
 
 var DB *gorm.DB
+var Redis *redis.Client
 
 func Start(conf *pkg.ServiceConfig) error {
 	log.Info("Connecting to required external i/o services")
@@ -17,6 +20,11 @@ func Start(conf *pkg.ServiceConfig) error {
 
 	DB, err = config.NewMySQL(conf.SqlDriverName, conf.SqlDataSourceName,
 		conf.DbMaxIdleConns, conf.DbMaxOpenConns)
+	if err != nil {
+		return err
+	}
+
+	Redis, err = config.NewRedis(conf.RedisHost + ":" + fmt.Sprint(conf.RedisPort))
 	if err != nil {
 		return err
 	}
@@ -41,4 +49,11 @@ func Close() {
 		return
 	}
 	log.Info("Database connection pool closed successfully")
+
+	if err := Redis.Close(); err != nil {
+		log.Error("Error closing redis:", err.Error())
+		return
+	}
+	log.Info("Redis connection closed successfully")
+
 }

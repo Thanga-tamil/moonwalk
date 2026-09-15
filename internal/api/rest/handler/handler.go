@@ -1,12 +1,34 @@
 package handler
 
 import (
-	"moonwalk/internal/service"
+	dishService "moonwalk/internal/service"
+	orderService "moonwalk/internal/service"
+	timerService "moonwalk/internal/service"
 	"moonwalk/internal/utils"
+	"moonwalk/pkg"
 
 	log "github.com/Thanga-tamil/logger_v2"
 	"github.com/gin-gonic/gin"
 )
+
+func AddDish(ctx *gin.Context) {
+	var dish *pkg.AddDishDto
+
+	if err := ctx.ShouldBindBodyWithJSON(&dish); err != nil {
+		dishService.WriteErr(ctx, err.Error())
+		return
+	}
+
+	if err := dishService.ValidateAddDishInputPayload(dish); err != nil {
+		dishService.WriteErr(ctx, err.Error())
+		return
+	}
+
+	log.Warnfx("dish :: %#v", dish)
+
+	dishService.AddDish(ctx, dish)
+
+}
 
 // GetAvailableDishes function returns a list of available dishes
 // by retrieving statistics from the db. Assume unavailability
@@ -19,32 +41,32 @@ func GetAllDishes(ctx *gin.Context) {
 
 	if err != nil {
 		log.Error("Error while parsing integer from string:", err.Error())
-		service.WriteErr(ctx, err.Error())
+		dishService.WriteErr(ctx, err.Error())
 		return
 	}
 
-	service.GetAllDishes(ctx, page, size)
+	dishService.GetAllDishes(ctx, page, size)
 }
 
 func PlaceOrder(ctx *gin.Context) {
-	data, err := service.ValidatePlaceOrderInput(ctx)
+	data, err := orderService.ValidatePlaceOrderInput(ctx)
 
 	if err != nil {
 		log.Error("Error while parsing place order input:", err.Error())
-		service.WriteErr(ctx, err.Error())
+		orderService.WriteErr(ctx, err.Error())
 		return
 	}
 
-	service.PlaceOrder(ctx, data)
+	orderService.PlaceOrder(ctx, data)
 }
 
 func GetOrderTimer(ctx *gin.Context) {
 	orderId := ctx.Param("id")
 
 	if orderId == "" {
-		service.WriteErr(ctx, "order id must not be empty")
+		timerService.WriteErr(ctx, "order id must not be empty")
 		return
 	}
 
-	service.GetOrderTimer(ctx, orderId)
+	timerService.GetOrderTimer(ctx, orderId)
 }

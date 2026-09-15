@@ -52,3 +52,7 @@ func GetDish(dishID int) (pkg.Dish, error) {
 
 	return dish, nil
 }
+
+func InsertDish(d *pkg.Dish) error {
+	return app.DB.Table("dishes").Create(d).Error
+}

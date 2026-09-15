@@ -9,7 +9,7 @@ import (
 	"gorm.io/gorm"
 )
 
-func Insert(tx *gorm.DB, o *pkg.Order) error {
+func InsertOrder(tx *gorm.DB, o *pkg.Order) error {
 	return tx.Table("orders").Create(o).Error
 }
 

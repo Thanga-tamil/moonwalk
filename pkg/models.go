@@ -15,6 +15,8 @@ type ServiceConfig struct {
 	DbMaxIdleConns         int    `json:"dbMaxIdleConns"`
 	DbMaxOpenConns         int    `json:"dbMaxOpenConns"`
 	PendingOrdersBatchSize int    `json:"batchSize"`
+	RedisHost              string `json:"redisHost"`
+	RedisPort              int    `json:"redisPort"`
 }
 
 type Dish struct {
@@ -90,4 +92,12 @@ type TimerDto struct {
 	TimeEstimated int64     `json:"time_estimated_seconds"` // total estimated duration
 	TimeElapsed   int64     `json:"time_elapsed_seconds"`   // elapsed since creation
 	TimeRemaining int64     `json:"time_remaining_seconds"` // countdown value (>=0)
+}
+
+type AddDishDto struct {
+	Dish        string `json:"dish"`
+	Price       int    `json:"price"`
+	PrepTime    int    `json:"prepTime"` // in minutes
+	IsAvailable bool   `json:"isAvailable"`
+	PreCooked   bool   `json:"preCooked"`
 }

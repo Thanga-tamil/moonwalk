@@ -3,69 +3,20 @@ package service
 import (
 	"errors"
 	"net/http"
-	"strconv"
 
-	log "github.com/Thanga-tamil/logger_v2"
 	"github.com/gin-gonic/gin"
 	"gorm.io/gorm"
+
+	log "github.com/Thanga-tamil/logger_v2"
+
+	"moonwalk/pkg"
 
 	"moonwalk/internal/app"
 	chefsRepo "moonwalk/internal/repository"
 	dishesRepo "moonwalk/internal/repository"
 	ordersRepo "moonwalk/internal/repository"
 	suppliersRepo "moonwalk/internal/repository"
-	"moonwalk/pkg"
 )
-
-// GetAvailableDishes function returns a list of available dishes
-// by retrieving statistics from the db. Assume unavailability
-// of dishes will be updated by the respective restaurants.
-func GetAllDishes(ctx *gin.Context, page, size int) {
-
-	// since the pagination handled in query itself, we can't get the
-	// totalRecords from the retrieved dataset, so handle and return no
-	// records case before processing the data
-	totalRecords, err := dishesRepo.TotalRecordsOfDishes()
-	if err != nil {
-		log.Error("Error while retriving data from schema:", err.Error())
-		WriteErr(ctx, err.Error())
-		return
-	}
-
-	log.Debug("^GetAllDishes totalRecords:", totalRecords)
-	if totalRecords == 0 {
-		ctx.JSON(http.StatusNoContent, "")
-		return
-	}
-
-	// Retrieve available dishes from db.
-	// let the query take care of pagination using limit & offset
-	dishes, err := dishesRepo.GetAllDishes(page, size)
-	if err != nil {
-		log.Error("Error while retriving All Dishes from schema:", err.Error())
-		WriteErr(ctx, err.Error())
-		return
-	}
-
-	totalPages := totalRecords / int64(size)
-	if totalRecords%int64(size) > 0 {
-		totalPages++
-	}
-	if int64(page) > totalPages {
-		WriteErr(ctx, "Page limit exceeded, Total pages available: "+strconv.FormatInt(totalPages, 10))
-		return
-	}
-	response := pkg.Success(200, "Data retrieved successfully", dishes, totalRecords, len(dishes), totalPages)
-
-	log.Debugf("^GetAllDishes response: %#v", response)
-
-	ctx.JSON(http.StatusOK, response)
-}
-
-func WriteErr(ctx *gin.Context, err string) {
-	response := pkg.Failure(400, err)
-	ctx.JSON(http.StatusBadRequest, response)
-}
 
 func ValidatePlaceOrderInput(ctx *gin.Context) (*pkg.PlaceOrderDto, error) {
 	var data pkg.PlaceOrderDto
@@ -163,7 +114,7 @@ func handleResourceAwareOrder(tx *gorm.DB, chef *pkg.Chefs, dish *pkg.Dish) (*pk
 	if chef.Status == IDLE {
 		order.Status = "PREPARING"
 		order.ResourceType = CHEF
-		ordersRepo.Insert(tx, &order)
+		ordersRepo.InsertOrder(tx, &order)
 
 		// audit preparing status of the order
 		resourceType := CHEF
@@ -171,7 +122,7 @@ func handleResourceAwareOrder(tx *gorm.DB, chef *pkg.Chefs, dish *pkg.Dish) (*pk
 
 		chef.CurrentOrderID = order.OrderId
 		chef.Status = BUSY
-	} else if err := ordersRepo.Insert(tx, &order); err != nil {
+	} else if err := ordersRepo.InsertOrder(tx, &order); err != nil {
 		return nil, err
 	}
 
@@ -193,7 +144,7 @@ func handlePreCookedOrder(tx *gorm.DB, supplier *pkg.Suppliers, dish *pkg.Dish) 
 	if supplier.Status == IDLE {
 		order.Status = PROCESSING
 		order.ResourceType = SUPPLIER
-		err := ordersRepo.Insert(tx, &order)
+		err := ordersRepo.InsertOrder(tx, &order)
 		if err != nil {
 			return nil, err
 		}
@@ -204,7 +155,7 @@ func handlePreCookedOrder(tx *gorm.DB, supplier *pkg.Suppliers, dish *pkg.Dish) 
 
 		supplier.CurrentOrderID = order.OrderId
 		supplier.Status = BUSY
-	} else if err := ordersRepo.Insert(tx, &order); err != nil {
+	} else if err := ordersRepo.InsertOrder(tx, &order); err != nil {
 		return nil, err
 	}
 
@@ -213,4 +164,9 @@ func handlePreCookedOrder(tx *gorm.DB, supplier *pkg.Suppliers, dish *pkg.Dish) 
 	}
 
 	return &order, nil
+}
+
+func WriteErr(ctx *gin.Context, err string) {
+	response := pkg.Failure(400, err)
+	ctx.JSON(http.StatusBadRequest, response)
 }
