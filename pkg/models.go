@@ -102,3 +102,7 @@ type AddDishDto struct {
 	IsAvailable bool   `json:"isAvailable"`
 	PreCooked   bool   `json:"preCooked"`
 }
+
+type DeleteDishDto struct {
+	Ids []int
+}

@@ -209,3 +209,25 @@ func AddDishes(ctx *gin.Context, dishesPayload *[]pkg.AddDishDto) {
 
 	ctx.JSON(http.StatusOK, response)
 }
+
+func DeleteDishes(ctx *gin.Context, dishIds []int) {
+	deletedRecords, err := dishesRepo.DeleteDishes(dishIds)
+	if err != nil {
+		WriteErr(ctx, err.Error())
+		return
+	}
+
+	var msg string
+
+	if deletedRecords == 0 {
+		msg = "No dishes available for the input ids provided"
+	} else {
+		msg = "Dishes deleted successfully"
+	}
+
+	response := map[string]interface{}{
+		"statusCode": 200,
+		"message":    msg,
+	}
+	ctx.JSON(http.StatusOK, response)
+}

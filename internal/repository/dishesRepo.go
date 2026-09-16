@@ -60,3 +60,18 @@ func InsertDish(d *pkg.Dish) error {
 func InsertDishes(d []*pkg.Dish) error {
 	return app.DB.Table("dishes").Create(d).Error
 }
+
+// a dish have unique constraint in schema level
+// if a client wants to delete a dish: do hard delete
+// so this way if client wants to add the same dish again
+// /add dish API can be used to persist the data in schema
+// without unique constraint error
+func DeleteDishes(ids []int) (int64, error) {
+	result := app.DB.Table("dishes").Where("id IN ?", ids).Delete("")
+
+	if result.Error != nil {
+		return -1, result.Error
+	}
+
+	return result.RowsAffected, nil
+}
