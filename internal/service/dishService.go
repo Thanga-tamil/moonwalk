@@ -33,7 +33,7 @@ successfull retrieval from database, data will be cached in redis to reduce
 external IO's on the next API call.
 */
 
-func GetAllDishes(ctx *gin.Context, page, size int) {
+func GetDishes(ctx *gin.Context, page, size int) {
 
 	totalRecords, err := app.Redis.ZCard(ctx, DISHES).Result()
 	if err != nil {
@@ -164,58 +164,6 @@ func fetchDishesFromRedis(dishes []*pkg.Dish, page, size int) ([]*pkg.Dish, erro
 	}
 
 	return dishes, nil
-}
-
-func ValidateAddDishInputPayload(dish *pkg.AddDishDto) error {
-	if strings.TrimSpace(dish.Dish) == "" {
-		return errors.New("'dish' can not be empty or null")
-	} else if dish.Price <= 0 {
-		return errors.New("'price' must be greater than 0")
-	} else if !dish.PreCooked && dish.PrepTime <= 0 {
-		return errors.New("none precooked dishes 'prepTime' must be greater than 0")
-	} else if dish.PreCooked && dish.PrepTime != 0 {
-		return errors.New("precooked dishes 'prepTime' must be 0")
-	} else {
-		return nil
-	}
-}
-
-func AddDish(ctx *gin.Context, dishPayload *pkg.AddDishDto) {
-
-	dish := &pkg.Dish{
-		Dish:        dishPayload.Dish,
-		Price:       dishPayload.Price,
-		IsAvailable: dishPayload.IsAvailable,
-		PrepTime:    dishPayload.PrepTime,
-		PreCooked:   dishPayload.PreCooked,
-		CreatedAt:   time.Now(),
-	}
-
-	if err := dishesRepo.InsertDish(dish); err != nil {
-		WriteErr(ctx, err.Error())
-		return
-	}
-
-	mapValue, err := json.Marshal(&dish)
-	if err != nil {
-		WriteErr(ctx, err.Error())
-		return
-	}
-
-	// store dish in redis cache to reduce external I/O while retrieving dishes
-	sortedSetMem := redis.Z{Score: float64(dish.Id), Member: string(mapValue)}
-	if err := app.Redis.ZAdd(ctx, DISHES, sortedSetMem).Err(); err != nil {
-		WriteErr(ctx, err.Error())
-		return
-	}
-
-	response := map[string]interface{}{
-		"statusCode": 200,
-		"dishId":     dish.Id,
-		"message":    "Dish added successfully",
-	}
-
-	ctx.JSON(http.StatusOK, response)
 }
 
 func ValidateAddDishesInputPayload(dishes *[]pkg.AddDishDto) error {

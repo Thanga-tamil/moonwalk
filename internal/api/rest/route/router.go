@@ -1,26 +1,26 @@
 package route
 
 import (
-	"moonwalk/internal/api/rest/handler"
+	dishHandler "moonwalk/internal/api/rest/handler"
+	orderHandler "moonwalk/internal/api/rest/handler"
 
 	"github.com/gin-gonic/gin"
 )
 
-func Router(serve *gin.Engine) {
+func Router(v1Group *gin.RouterGroup) {
 
-	dish := serve.Group("/api/v1/dish")
+	dish := v1Group.Group("/api/v1/dish")
 	{
-		dish.POST("", handler.AddDish)
-		dish.POST("/dishes", handler.AddDishes)
-		// dish.PUT("/update", handler.UpdateDish)
-		dish.DELETE("", handler.DeleteDishes)
-		dish.GET("", handler.GetAllDishes)
+		dish.POST("", dishHandler.AddDishes)
+		dish.GET("", dishHandler.GetDishes)
+		dish.PUT("", dishHandler.UpdateDish)
+		dish.DELETE("", dishHandler.DeleteDishes)
 	}
 
-	order := serve.Group("/api/v1/order")
+	order := v1Group.Group("/api/v1/order")
 	{
-		order.POST("", handler.PlaceOrder)
-		order.GET("/:id", handler.GetOrderTimer)
+		order.POST("", orderHandler.PlaceOrder)
+		order.GET("/:id", orderHandler.GetOrderTimer)
 	}
 
 }

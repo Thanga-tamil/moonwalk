@@ -28,7 +28,9 @@ func Serve(ADDR, serverMode string, addNewDishBatchSize, runTimeCacheProcessingB
 	serve.Use(gin.Recovery())
 	log.Infox("Middlewares attached to GIN successfull")
 
-	route.Router(serve)
+	v1Group := serve.Group("/api/v1/")
+
+	route.Router(v1Group)
 
 	log.Infox("Server started successfully ::", "ServerMode", serverMode)
 	log.Infox("Serving HTTP request response ::", "@ADDRESS", ADDR)
