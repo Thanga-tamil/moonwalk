@@ -20,71 +20,150 @@ import (
 
 var backgroundCtx = context.Background()
 var AddNewDishBatchSize = 0
+var RunTimeCacheProcessingBatchSize = 100
 
 const (
-	MapName = "dishes"
+	DISHES = "dishes"
 )
 
-// GetAvailableDishes function returns a list of available dishes
-// by retrieving statistics from the db. Assume unavailability
-// of dishes will be updated by the respective restaurants.
+/*
+GetAllDishes function retrieves paginated dishes from redis cache and return.
+If dishes not found in redis, retrieve paginated dishes from database and upon
+successfull retrieval from database, data will be cached in redis to reduce
+external IO's on the next API call.
+*/
+
 func GetAllDishes(ctx *gin.Context, page, size int) {
 
-	// dishess, err := app.Redis.HGetAll(backgroundCtx, MapName).Result()
-	// if err != nil {
-	// 	log.Error("Error fetching from Redis: %v", err)
-	// 	WriteErr(ctx, err.Error())
-	// 	return
-	// }
-
-	// log.Infox("", "Retrieved map len: ", len(dishess))
-	// if len(dishess) > 0 {
-	// 	response := pkg.Success(200, "Data retrieved successfully", dishess, totalRecords, len(dishes), totalPages)
-	// 		ctx.JSON(http.StatusOK, response)
-	// 	return
-	// }
-	// for key, value := range dishess {
-	// 	log.Warnx("%s: %s\n", key, value)
-	// }
-
-	// since the pagination handled in query itself, we can't get the
-	// totalRecords from the retrieved dataset, so handle and return no
-	// records case before processing the data
-	totalRecords, err := dishesRepo.TotalRecordsOfDishes()
+	totalRecords, err := app.Redis.ZCard(ctx, DISHES).Result()
 	if err != nil {
-		log.Error("Error while retriving data from schema:", err.Error())
 		WriteErr(ctx, err.Error())
 		return
 	}
 
-	log.Debug("^GetAllDishes totalRecords:", totalRecords)
+	var dishes []*pkg.Dish
+
 	if totalRecords == 0 {
-		ctx.JSON(http.StatusNoContent, "")
-		return
-	}
-
-	// Retrieve available dishes from db.
-	// let the query take care of pagination using limit & offset
-	dishes, err := dishesRepo.GetAllDishes(page, size)
-	if err != nil {
-		log.Error("Error while retriving All Dishes from schema:", err.Error())
-		WriteErr(ctx, err.Error())
-		return
+		totalRecords, dishes, err = fetchDishesFromDB(page, size)
+		if totalRecords == 0 {
+			ctx.JSON(http.StatusNoContent, "")
+			return
+		} else if err != nil {
+			WriteErr(ctx, err.Error())
+			return
+		}
+	} else {
+		dishes, err = fetchDishesFromRedis(dishes, page, size)
+		if err != nil {
+			WriteErr(ctx, err.Error())
+			return
+		}
 	}
 
 	totalPages := totalRecords / int64(size)
 	if totalRecords%int64(size) > 0 {
 		totalPages++
 	}
-	if int64(page) > totalPages {
-		WriteErr(ctx, "Page limit exceeded, Total pages available: "+strconv.FormatInt(totalPages, 10))
-		return
-	}
-	response := pkg.Success(200, "Data retrieved successfully", dishes, totalRecords, len(dishes), totalPages)
 
-	log.Debugf("^GetAllDishes response: %#v", response)
+	response := pkg.Success{
+		StatusCode:   200,
+		Data:         dishes,
+		Message:      "Data retrieved successfully",
+		Count:        int16(len(dishes)),
+		TotalPages:   int16(totalPages),
+		TotalRecords: int16(totalRecords),
+	}
 
 	ctx.JSON(http.StatusOK, response)
+}
+
+func fetchDishesFromDB(page, size int) (int64, []*pkg.Dish, error) {
+
+	log.Info("No dishes found in redis :: check and fetch dishes from database")
+
+	totalRecords, err := dishesRepo.TotalRecordsOfDishes()
+	if err != nil {
+		return -1, nil, errors.New("Error while retriving data from schema:" + err.Error())
+	}
+
+	if totalRecords == 0 {
+		return 0, nil, nil
+	}
+
+	dishes, err := dishesRepo.GetPaginatedDishes(page, size)
+	if err != nil {
+		return -1, nil, errors.New("Error while retriving All Dishes from schema:" + err.Error())
+	}
+
+	go cacheDishesInRedis()
+
+	return totalRecords, dishes, nil
+
+}
+
+// Retrieve and process in batch
+func cacheDishesInRedis() {
+
+	page := 1
+	for {
+		dishes, err := dishesRepo.GetPaginatedDishes(page, RunTimeCacheProcessingBatchSize)
+		page = (page + 1)
+
+		if err != nil {
+			log.Error("Error while retrieving dishes from database for processing redis cache")
+			log.Error("Err:", err.Error())
+			return
+		} else if len(dishes) < 1 {
+			log.Warnx("No dishes found in database for processing redis cache")
+			return
+		}
+
+		log.Infofx("Caching %d dishes in redis", len(dishes))
+
+		for _, dish := range dishes {
+			mapValue, err := json.Marshal(&dish)
+			if err != nil {
+				log.Error(err.Error())
+				return
+			}
+
+			// store dishes in redis cache to reduce external I/O while retrieving dishes
+			sortedSetMem := redis.Z{Score: float64(dish.Id), Member: string(mapValue)}
+			if err := app.Redis.ZAdd(backgroundCtx, DISHES, sortedSetMem).Err(); err != nil {
+				log.Error(err.Error())
+				return
+			}
+		}
+
+		log.Info("Dishes cached in redis successfully")
+	}
+
+}
+
+func fetchDishesFromRedis(dishes []*pkg.Dish, page, size int) ([]*pkg.Dish, error) {
+	log.Info("Fetching dishes from redis")
+
+	start := int64((page - 1) * size)
+	stop := start + int64(size) - 1
+
+	result, err := app.Redis.ZRange(backgroundCtx, DISHES, start, stop).Result()
+	if err != nil {
+		return nil, err
+	}
+
+	dishes = make([]*pkg.Dish, 0, len(result))
+
+	for _, item := range result {
+		var dish pkg.Dish
+
+		if err := json.Unmarshal([]byte(item), &dish); err != nil {
+			return nil, err
+		}
+
+		dishes = append(dishes, &dish)
+	}
+
+	return dishes, nil
 }
 
 func ValidateAddDishInputPayload(dish *pkg.AddDishDto) error {
@@ -125,7 +204,7 @@ func AddDish(ctx *gin.Context, dishPayload *pkg.AddDishDto) {
 
 	// store dish in redis cache to reduce external I/O while retrieving dishes
 	sortedSetMem := redis.Z{Score: float64(dish.Id), Member: string(mapValue)}
-	if err := app.Redis.ZAdd(ctx, MapName, sortedSetMem).Err(); err != nil {
+	if err := app.Redis.ZAdd(ctx, DISHES, sortedSetMem).Err(); err != nil {
 		WriteErr(ctx, err.Error())
 		return
 	}
@@ -196,7 +275,7 @@ func AddDishes(ctx *gin.Context, dishesPayload *[]pkg.AddDishDto) {
 
 		// store dishes in redis cache to reduce external I/O while retrieving dishes
 		sortedSetMem := redis.Z{Score: float64(dish.Id), Member: string(mapValue)}
-		if err := app.Redis.ZAdd(ctx, MapName, sortedSetMem).Err(); err != nil {
+		if err := app.Redis.ZAdd(ctx, DISHES, sortedSetMem).Err(); err != nil {
 			WriteErr(ctx, err.Error())
 			return
 		}
@@ -211,6 +290,7 @@ func AddDishes(ctx *gin.Context, dishesPayload *[]pkg.AddDishDto) {
 }
 
 func DeleteDishes(ctx *gin.Context, dishIds []int) {
+
 	deletedRecords, err := dishesRepo.DeleteDishes(dishIds)
 	if err != nil {
 		WriteErr(ctx, err.Error())
@@ -230,4 +310,5 @@ func DeleteDishes(ctx *gin.Context, dishIds []int) {
 		"message":    msg,
 	}
 	ctx.JSON(http.StatusOK, response)
+
 }

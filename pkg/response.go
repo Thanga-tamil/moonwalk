@@ -1,14 +1,12 @@
 package pkg
 
-func Success(statusCode, msg, data, totalRecords, count, totalPages any) any {
-	return map[string]any{
-		"data":         data,
-		"message":      msg,
-		"statusCode":   statusCode,
-		"count":        count,
-		"totalPages":   totalPages,
-		"totalRecords": totalRecords,
-	}
+type Success struct {
+	StatusCode   int16
+	Data         any
+	Message      string
+	Count        int16
+	TotalPages   int16
+	TotalRecords int16
 }
 
 func Failure(statusCode, msg any) any {

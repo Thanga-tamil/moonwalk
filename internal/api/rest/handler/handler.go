@@ -66,8 +66,8 @@ func DeleteDishes(ctx *gin.Context) {
 func GetAllDishes(ctx *gin.Context) {
 	page, size, err := utils.Pagination(ctx)
 
-	log.Debug("^GetAllDishes input param page:", page)
-	log.Debug("^GetAllDishes input param size:", page)
+	log.Debug("", "^GetAllDishes input param page:", page)
+	log.Debug("", "^GetAllDishes input param size:", size)
 
 	if err != nil {
 		log.Error("Error while parsing integer from string:", err.Error())

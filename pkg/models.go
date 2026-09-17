@@ -3,21 +3,22 @@ package pkg
 import "time"
 
 type ServiceConfig struct {
-	ServerHost                string `json:"serverHost"`
-	ServerPort                int    `json:"serverPort"`
-	SqlDriverName             string `json:"sqlDriverName"`
-	SqlDataSourceName         string `json:"sqlDataSourceName"`
-	LogLevel                  int    `json:"logLevel"` // 0 = ERROR, 1 = INFO, 2 = DEBUG, 3 = WARNING
-	LogFile                   string `json:"logFile"`
-	LogWriteToFile            bool   `json:"logWriteToFile"`
-	ServerMode                string `json:"serverMode"`
-	CronInterval              int    `json:"cronInterval"` // seconds
-	DbMaxIdleConns            int    `json:"dbMaxIdleConns"`
-	DbMaxOpenConns            int    `json:"dbMaxOpenConns"`
-	PendingOrderProcBatchSize int    `json:"pendingOrderProcBatchSize"`
-	RedisHost                 string `json:"redisHost"`
-	RedisPort                 int    `json:"redisPort"`
-	AddNewDishBatchSize       int    `json:"addNewDishBatchSize"`
+	ServerHost                      string `json:"serverHost"`
+	ServerPort                      int    `json:"serverPort"`
+	SqlDriverName                   string `json:"sqlDriverName"`
+	SqlDataSourceName               string `json:"sqlDataSourceName"`
+	LogLevel                        int    `json:"logLevel"` // 0 = ERROR, 1 = INFO, 2 = DEBUG, 3 = WARNING
+	LogFile                         string `json:"logFile"`
+	LogWriteToFile                  bool   `json:"logWriteToFile"`
+	ServerMode                      string `json:"serverMode"`
+	CronInterval                    int    `json:"cronInterval"` // seconds
+	DbMaxIdleConns                  int    `json:"dbMaxIdleConns"`
+	DbMaxOpenConns                  int    `json:"dbMaxOpenConns"`
+	PendingOrderProcBatchSize       int    `json:"pendingOrderProcBatchSize"`
+	RedisHost                       string `json:"redisHost"`
+	RedisPort                       int    `json:"redisPort"`
+	AddNewDishBatchSize             int    `json:"addNewDishBatchSize"`
+	RunTimeCacheProcessingBatchSize int    `json:"runTimeCacheProcessingBatchSize"`
 }
 
 type Dish struct {

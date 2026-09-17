@@ -14,7 +14,7 @@ import (
 
 // Serve starts and returns the HTTP server (and an error channel) so the caller
 // can either block on server failures or gracefully shut it down on signals.
-func Serve(ADDR, serverMode string, addNewDishBatchSize int) (*http.Server, <-chan error) {
+func Serve(ADDR, serverMode string, addNewDishBatchSize, runTimeCacheProcessingBatchSize int) (*http.Server, <-chan error) {
 
 	setGinMode(serverMode)
 
@@ -34,6 +34,7 @@ func Serve(ADDR, serverMode string, addNewDishBatchSize int) (*http.Server, <-ch
 	log.Infox("Serving HTTP request response ::", "@ADDRESS", ADDR)
 
 	service.AddNewDishBatchSize = addNewDishBatchSize
+	service.RunTimeCacheProcessingBatchSize = runTimeCacheProcessingBatchSize
 
 	httpServer := &http.Server{
 		Addr:         ADDR,

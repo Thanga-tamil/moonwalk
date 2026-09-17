@@ -7,10 +7,10 @@ import (
 	log "github.com/Thanga-tamil/logger_v2"
 )
 
-func GetAllDishes(page, size int) ([]pkg.Dish, error) {
+func GetPaginatedDishes(page, size int) ([]*pkg.Dish, error) {
 	offset := (page - 1) * size
 
-	var dishes []pkg.Dish
+	var dishes []*pkg.Dish
 
 	err := app.DB.Table("dishes").
 		Select(`id, dish, price, prep_time, ` +
