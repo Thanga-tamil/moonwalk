@@ -32,20 +32,33 @@ func AddDishes(ctx *gin.Context) {
 // of dishes will be updated by the respective restaurants.
 func GetDishes(ctx *gin.Context) {
 	page, size, err := utils.Pagination(ctx)
-
-	log.Debug("", "^GetDishes input param page:", page)
-	log.Debug("", "^GetAlGetDisheslDishes input param size:", size)
-
 	if err != nil {
 		log.Error("Error while parsing integer from string:", err.Error())
 		dishService.WriteErr(ctx, err.Error())
 		return
 	}
 
+	log.Debug("", "^GetDishes input param page:", page)
+	log.Debug("", "^GetAlGetDisheslDishes input param size:", size)
+
 	dishService.GetDishes(ctx, page, size)
 }
 
-func UpdateDish(ctx *gin.Context) {}
+func UpdateDish(ctx *gin.Context) {
+
+	var updateDishDto pkg.UpdateDishDto
+	if err := ctx.ShouldBindBodyWithJSON(&updateDishDto); err != nil {
+		dishService.WriteErr(ctx, err.Error())
+		return
+	}
+
+	if err := dishService.ValidateUpdateDishDtoPayload(updateDishDto); err != nil {
+		dishService.WriteErr(ctx, err.Error())
+		return
+	}
+
+	dishService.UpdateDish(ctx, updateDishDto)
+}
 
 func DeleteDishes(ctx *gin.Context) {
 	log.Infox("hello")

@@ -237,6 +237,24 @@ func AddDishes(ctx *gin.Context, dishesPayload *[]pkg.AddDishDto) {
 	ctx.JSON(http.StatusOK, response)
 }
 
+func ValidateUpdateDishDtoPayload(updateDishDto pkg.UpdateDishDto) error {
+
+	if updateDishDto.Id < 1 {
+		return errors.New("Dish Id must be greater than 0")
+	} else if updateDishDto.Price < 1 {
+		return errors.New("price must be greater than 0")
+	} else if updateDishDto.PreCooked && updateDishDto.PrepTime < 1 {
+		return errors.New("Precooked dish prepTime must be greater than 0")
+	}
+
+	return nil
+
+}
+
+func UpdateDish(ctx *gin.Context, updateDishDto pkg.UpdateDishDto) {
+
+}
+
 func DeleteDishes(ctx *gin.Context, dishIds []int) {
 
 	deletedRecords, err := dishesRepo.DeleteDishes(dishIds)

@@ -107,3 +107,11 @@ type AddDishDto struct {
 type DeleteDishDto struct {
 	Ids []int
 }
+
+type UpdateDishDto struct {
+	Id          int  `json:"id"`
+	Price       int  `json:"price"`
+	PrepTime    int  `json:"prepTime"` // in minutes
+	IsAvailable bool `json:"isAvailable"`
+	PreCooked   bool `json:"preCooked"`
+}
